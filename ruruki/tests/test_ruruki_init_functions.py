@@ -6,14 +6,15 @@
 import json
 import unittest2
 import ruruki
+from ruruki import graphs
 from ruruki.test_utils import helpers
 
 
 class TestInitHelperFunctions(unittest2.TestCase):
     def test_get_graph_plugins(self):
         self.assertEqual(
-            ruruki.get_graph_plugins(),
-            ["graph"]
+            sorted(ruruki.get_graph_plugins()),
+            sorted(["graph", "persistent-graph"]),
         )
 
     def test_create_graph(self):
@@ -55,4 +56,16 @@ class TestInitHelperFunctions(unittest2.TestCase):
         self.assertDictEqual(
             d1,
             d2,
+        )
+
+    def test_create_mem_graph(self):
+        self.assertIsInstance(
+            ruruki.create_graph(graph_plugin="graph"),
+            graphs.Graph,
+        )
+
+    def test_create_persistence_graph(self):
+        self.assertIsInstance(
+            ruruki.create_graph(graph_plugin="persistent-graph"),
+            graphs.PersistentGraph,
         )

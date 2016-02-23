@@ -3,6 +3,9 @@ Graph implementations
 """
 from collections import defaultdict
 import json
+import logging
+import os
+from tempfile import mkdtemp
 from ruruki import interfaces
 from ruruki.entities import Vertex, Edge
 from ruruki.entities import EntitySet
@@ -280,3 +283,106 @@ class Graph(interfaces.IGraph):
             )
 
         return entity in self.vertices or entity in self.edges
+
+
+class PersistentGraph(Graph):
+    """
+    Persistent Graph database storing data to a file system.
+
+    .. note::
+
+        See :class:`~.IGraph` for doco.
+    """
+    def __init__(self, *args, **kwargs):
+        super(PersistentGraph, self).__init__(*args, **kwargs)
+        self.path = None
+        self.vertices_path = None
+        self.edges_path = None
+
+    def load(self, path=None):
+        """
+        Load the given path. If :obj:`None`, then a temporary path will be
+        created to store the data.
+
+        :param path: Path to load the persistent data from.
+        :type path: :class:`str` or :obj:`None`
+        """
+        if path is None:
+            self.path = mkdtemp(suffix="-ruruki-db")
+            logging.info("Created temporary graph db path %r", self.path)
+
+
+            # Create the vertices path
+            self.vertices_path = os.path.join(self.path, "vertices")
+            os.makedirs(self.vertices_path)
+
+            # Create the edges path
+            self.edges_path = os.path.join(self.path, "edges")
+            os.makedirs(self.edges_path)
+
+            # Create constraint files
+            open(os.path.join(self.vertices_path, "constraints.txt"), "w").close()
+            open(os.path.join(self.edges_path, "constraints.txt"), "w").close()
+        else:
+            self.path = path
+            # I still need to scan and load once I am happy with the layout.
+
+    def add_vertex(self, label=None, **kwargs):
+        vertex = super(PersistentGraph, self).add_vertex(label, **kwargs)
+        vertex_path = os.path.join(self.vertices_path, label, str(vertex.ident))
+        vertex.set_property(_path=vertex_path)
+        os.makedirs(vertex_path)
+        os.makedirs(os.path.join(vertex_path, "in-edges"))
+        os.makedirs(os.path.join(vertex_path, "out-edges"))
+
+        # Add the properties to the properties file
+        with open(os.path.join(vertex_path, "properties.txt"), "w") as prop_file:
+            for key, value in kwargs.items():
+                prop_file.write("{}={}\n".format(key, value))
+        return vertex
+
+    def add_edge(self, head, label, tail, **kwargs):
+        edge = super(PersistentGraph, self).add_edge(
+            head, label, tail, **kwargs
+        )
+
+        # head.out_edges.add(edge)
+        # tail.in_edges.add(edge)
+
+        edge_path = os.path.join(self.edges_path, label, str(edge.ident))
+        os.makedirs(edge_path)
+
+        os.symlink(
+            head.properties["_path"],
+            os.path.join(edge_path, str(head.ident))
+        )
+
+        os.symlink(
+            tail.properties["_path"],
+            os.path.join(edge_path, str(tail.ident))
+        )
+
+        os.symlink(
+            edge_path,
+            os.path.join(
+                head.properties["_path"],
+                "out-edges",
+                str(edge.ident)
+            )
+        )
+
+        os.symlink(
+            edge_path,
+            os.path.join(
+                tail.properties["_path"],
+                "in-edges",
+                str(edge.ident)
+            )
+        )
+
+
+        # Add the properties to the properties file
+        with open(os.path.join(edge_path, "properties.txt"), "w") as prop_file:
+            for key, value in kwargs.items():
+                prop_file.write("{}={}\n".format(key, value))
+        return edge

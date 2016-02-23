@@ -5,6 +5,8 @@
 # pylint: disable=too-many-statements
 
 import json
+import os
+import unittest2
 from ruruki import create_graph
 from ruruki import interfaces
 from ruruki.entities import Entity, Edge, Vertex
@@ -740,3 +742,157 @@ class TestGraphGetOrCreateEdges(base.TestBase):
             self.graph.get_or_create_edge(self.marko, "knows", self.josh),
             self.marko_knows_josh,
         )
+
+
+class TestPersistentGraph(unittest2.TestCase):
+    def setUp(self):
+        self.graph = create_graph("persistent-graph")
+
+    def test_load_with_no_path(self):
+        self.graph.load()
+        self.assertIsNotNone(self.graph.path)
+        self.assertEqual(
+            sorted(os.listdir(self.graph.path)),
+            sorted(["edges", "vertices"]),
+        )
+
+        # check for the constraints files
+        self.assertEqual(
+            sorted(os.listdir(self.graph.vertices_path)),
+            sorted(["constraints.txt"]),
+        )
+
+        self.assertEqual(
+            sorted(os.listdir(self.graph.edges_path)),
+            sorted(["constraints.txt"]),
+        )
+
+    def test_load_with_provided_path(self):
+        self.graph.load()
+        self.graph.load("/some/path")
+        self.assertIsNotNone(self.graph.path)
+        self.assertEqual(self.graph.path, "/some/path")
+
+    def test_add_vertex(self):
+        self.graph.load()
+        marko = self.graph.add_vertex("person", name="Marko")
+        josh = self.graph.add_vertex("person", name="Josh")
+        spot = self.graph.add_vertex("dog", name="Spot")
+
+        # Check for the label folder
+        self.assertEqual(
+            sorted(os.listdir(self.graph.vertices_path)),
+            sorted(["constraints.txt", "dog", "person"]),
+        )
+
+        # Check in the label folder for vertex ident folders
+        self.assertEqual(
+            sorted(
+                os.listdir(
+                    os.path.join(self.graph.vertices_path, "person")
+                )
+            ),
+            sorted([str(marko.ident), str(josh.ident)]),
+        )
+
+        self.assertEqual(
+            sorted(
+                os.listdir(
+                    os.path.join(self.graph.vertices_path, "dog")
+                )
+            ),
+            sorted([str(spot.ident)]),
+        )
+
+        # check in the verext folder for the property file and the
+        # in/out edges folders - checking only one vertex should be enough.
+        self.assertEqual(
+            sorted(
+                os.listdir(
+                    os.path.join(self.graph.vertices_path, "person", str(marko.ident))
+                )
+            ),
+            sorted(["properties.txt", "in-edges", "out-edges"]),
+        )
+
+        # check that the properties file was populated
+        self.assertEqual(
+            open(
+                os.path.join(
+                    self.graph.vertices_path,
+                    "person",
+                    str(marko.ident),
+                    "properties.txt"
+                )
+            ).readlines(),
+            ["name=Marko\n"]
+        )
+
+    def test_add_edge(self):
+        self.graph.load()
+        marko = self.graph.add_vertex("person", name="Marko")
+        josh = self.graph.add_vertex("person", name="Josh")
+        edge = self.graph.add_edge(marko, "knows", josh, since="school")
+
+        # Check for the label folder
+        self.assertEqual(
+            sorted(os.listdir(self.graph.edges_path)),
+            sorted(["constraints.txt", "knows"]),
+        )
+
+        # Check in the label folder for edge ident folders
+        self.assertEqual(
+            sorted(
+                os.listdir(
+                    os.path.join(self.graph.edges_path, "knows")
+                )
+            ),
+            sorted([str(edge.ident)]),
+        )
+
+        # check in the edge folder for the property file and the
+        # vertices symlinks
+        self.assertEqual(
+            sorted(
+                os.listdir(
+                    os.path.join(self.graph.edges_path, "knows", str(edge.ident))
+                )
+            ),
+            sorted(["properties.txt", str(marko.ident), str(josh.ident)]),
+        )
+
+        # check that the vertices in the edge folder are symlinks
+        mark_link = os.path.join(
+            self.graph.edges_path, "knows", str(edge.ident), str(marko.ident)
+        )
+        josh_link = os.path.join(
+            self.graph.edges_path, "knows", str(edge.ident), str(marko.ident)
+        )
+
+        self.assertEqual(os.path.islink(mark_link), True)
+        self.assertEqual(os.path.islink(josh_link), True)
+
+        # check that the properties file was populated
+        self.assertEqual(
+            open(
+                os.path.join(
+                    self.graph.edges_path,
+                    "knows",
+                    str(edge.ident),
+                    "properties.txt"
+                )
+            ).readlines(),
+            ["since=school\n"]
+        )
+
+        # check that the edge in the vertex in and out edge folders are
+        # symlinked to the edge
+        mark_out_edge_link = os.path.join(
+            self.graph.vertices_path, "person", str(marko.ident), "out-edges", str(edge.ident)
+        )
+        josh_in_edge_link = os.path.join(
+            self.graph.vertices_path, "person", str(josh.ident), "in-edges", str(edge.ident)
+        )
+
+        self.assertEqual(os.path.islink(mark_out_edge_link), True)
+        self.assertEqual(os.path.islink(josh_in_edge_link), True)
