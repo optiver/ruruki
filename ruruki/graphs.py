@@ -330,15 +330,10 @@ class PersistentGraph(Graph):
     def add_vertex(self, label=None, **kwargs):
         vertex = super(PersistentGraph, self).add_vertex(label, **kwargs)
         vertex_path = os.path.join(self.vertices_path, label, str(vertex.ident))
-        vertex.set_property(_path=vertex_path)
         os.makedirs(vertex_path)
         os.makedirs(os.path.join(vertex_path, "in-edges"))
         os.makedirs(os.path.join(vertex_path, "out-edges"))
-
-        # Add the properties to the properties file
-        with open(os.path.join(vertex_path, "properties.txt"), "w") as prop_file:
-            for key, value in kwargs.items():
-                prop_file.write("{}={}\n".format(key, value))
+        vertex.set_property(_path=vertex_path)
         return vertex
 
     def add_edge(self, head, label, tail, **kwargs):
@@ -346,11 +341,9 @@ class PersistentGraph(Graph):
             head, label, tail, **kwargs
         )
 
-        # head.out_edges.add(edge)
-        # tail.in_edges.add(edge)
-
         edge_path = os.path.join(self.edges_path, label, str(edge.ident))
         os.makedirs(edge_path)
+        edge.set_property(_path=edge_path)
 
         os.symlink(
             head.properties["_path"],
@@ -380,9 +373,20 @@ class PersistentGraph(Graph):
             )
         )
 
-
-        # Add the properties to the properties file
-        with open(os.path.join(edge_path, "properties.txt"), "w") as prop_file:
-            for key, value in kwargs.items():
-                prop_file.write("{}={}\n".format(key, value))
         return edge
+
+    def set_property(self, entity, **kwargs):
+        super(PersistentGraph, self).set_property(entity, **kwargs)
+
+        # Update the properties to the properties file
+        properties_file = os.path.join(
+            entity.properties["_path"],
+            "properties.txt"
+        )
+
+        with open(properties_file, "w") as prop_file:
+            for key, value in entity.properties.items():
+                # we do not want the path metadata in the properties file.
+                if key == "_path":
+                    continue
+                prop_file.write("{}={}\n".format(key, value))
