@@ -15,6 +15,7 @@ Contents:
    readme
    tutorial
    interfaces
+   implementations
 
 
 Indices and tables

@@ -5,6 +5,7 @@ from collections import defaultdict
 import json
 import logging
 import os
+import shutil
 from tempfile import mkdtemp
 from ruruki import interfaces
 from ruruki.entities import Vertex, Edge
@@ -45,11 +46,9 @@ class IDGenerator(object):
 
 class Graph(interfaces.IGraph):
     """
-    Graph database.
+    In-memory graph database.
 
-    .. note::
-
-        See :class:`~.IGraph` for doco.
+    See :class:`~.IGraph` for doco.
     """
 
     def __init__(self):
@@ -289,43 +288,71 @@ class PersistentGraph(Graph):
     """
     Persistent Graph database storing data to a file system.
 
-    .. note::
+    See :class:`~.IGraph` for doco.
 
-        See :class:`~.IGraph` for doco.
+    .. code::
+
+        path
+           |_ vertices
+           |     |_ constraints.txt (file)
+           |     |_ label
+           |     |     |_ 0
+           |     |        |_ properties.txt (file)
+           |     |        |_ in-edges
+           |     |        |     |_ 0 -> ../../../../edges/label/0 (symlink)
+           |     |        |_ out-edges
+           |     |              |_
+           |     |
+           |     |_ label
+           |     |    |_ 1
+           |     |         |_ properties.txt (file)
+           |     |          |_ in-edges
+           |     |          |     |_
+           |     |          |_ out-edges
+           |     |                |_ 0 -> ../../../../edges/label/0 (symlink)
+           |
+           |_ edges
+                 |_ constraints.txt
+                 |_ label
+                       |
+                       |_0
+                         |_ properties.txt (file)
+                         |_ ../../../vertices/0 (symlik)
+                         |_ ../../../vertices/1 (symlik)
+
+
+    :param path: Path to ruruki graph data on disk. If :obj:`None`, then
+        a temporary path will be created.
+    :type path: :class:`str`
     """
-    def __init__(self, *args, **kwargs):
-        super(PersistentGraph, self).__init__(*args, **kwargs)
-        self.path = None
-        self.vertices_path = None
-        self.edges_path = None
+    def __init__(self, path=None):
+        super(PersistentGraph, self).__init__()
+        self.path = path
+        if self.path is None:
+            self._create_path()
 
-    def load(self, path=None):
-        """
-        Load the given path. If :obj:`None`, then a temporary path will be
-        created to store the data.
+    def _create_path(self):
+        self.path = mkdtemp(suffix="-ruruki-db")
+        logging.info("Created temporary graph db path %r", self.path)
 
-        :param path: Path to load the persistent data from.
-        :type path: :class:`str` or :obj:`None`
-        """
-        if path is None:
-            self.path = mkdtemp(suffix="-ruruki-db")
-            logging.info("Created temporary graph db path %r", self.path)
+        # Create the vertices path
+        self.vertices_path = os.path.join(self.path, "vertices")
+        os.makedirs(self.vertices_path)
 
+        # Create the edges path
+        self.edges_path = os.path.join(self.path, "edges")
+        os.makedirs(self.edges_path)
 
-            # Create the vertices path
-            self.vertices_path = os.path.join(self.path, "vertices")
-            os.makedirs(self.vertices_path)
+        # Create constraint files
+        open(os.path.join(self.vertices_path, "constraints.txt"), "w").close()
+        open(os.path.join(self.edges_path, "constraints.txt"), "w").close()
 
-            # Create the edges path
-            self.edges_path = os.path.join(self.path, "edges")
-            os.makedirs(self.edges_path)
-
-            # Create constraint files
-            open(os.path.join(self.vertices_path, "constraints.txt"), "w").close()
-            open(os.path.join(self.edges_path, "constraints.txt"), "w").close()
-        else:
-            self.path = path
-            # I still need to scan and load once I am happy with the layout.
+    def add_vertex_constraint(self, label, key):
+        super(PersistentGraph, self).add_vertex_constraint(label, key)
+        constraint_file = os.path.join(self.vertices_path, "constraints.txt")
+        with open(constraint_file, "w") as constraint_fh:
+            for label, key in self.get_vertex_constraints():
+                constraint_fh.write("{}={}\n".format(label, key))
 
     def add_vertex(self, label=None, **kwargs):
         vertex = super(PersistentGraph, self).add_vertex(label, **kwargs)
@@ -390,3 +417,11 @@ class PersistentGraph(Graph):
                 if key == "_path":
                     continue
                 prop_file.write("{}={}\n".format(key, value))
+
+    def remove_edge(self, edge):
+        shutil.rmtree(edge.properties["_path"])
+        super(PersistentGraph, self).remove_edge(edge)
+
+    def remove_vertex(self, vertex):
+        shutil.rmtree(vertex.properties["_path"])
+        super(PersistentGraph, self).remove_vertex(vertex)

@@ -9,6 +9,7 @@ import os
 import unittest2
 from ruruki import create_graph
 from ruruki import interfaces
+from ruruki.graphs import PersistentGraph
 from ruruki.entities import Entity, Edge, Vertex
 from ruruki.test_utils import base, helpers
 
@@ -746,11 +747,9 @@ class TestGraphGetOrCreateEdges(base.TestBase):
 
 class TestPersistentGraph(unittest2.TestCase):
     def setUp(self):
-        self.graph = create_graph("persistent-graph")
+        self.graph = PersistentGraph()
 
-    def test_load_with_no_path(self):
-        self.graph.load()
-        self.assertIsNotNone(self.graph.path)
+    def test_create_persistent_graph_with_no_path(self):
         self.assertEqual(
             sorted(os.listdir(self.graph.path)),
             sorted(["edges", "vertices"]),
@@ -767,14 +766,11 @@ class TestPersistentGraph(unittest2.TestCase):
             sorted(["constraints.txt"]),
         )
 
-    def test_load_with_provided_path(self):
-        self.graph.load()
-        self.graph.load("/some/path")
-        self.assertIsNotNone(self.graph.path)
-        self.assertEqual(self.graph.path, "/some/path")
+    def test_create_persistent_graph_with_path(self):
+        graph = PersistentGraph("/some/path")
+        self.assertEqual(graph.path, "/some/path")
 
     def test_add_vertex(self):
-        self.graph.load()
         marko = self.graph.add_vertex("person", name="Marko")
         josh = self.graph.add_vertex("person", name="Josh")
         spot = self.graph.add_vertex("dog", name="Spot")
@@ -809,7 +805,9 @@ class TestPersistentGraph(unittest2.TestCase):
         self.assertEqual(
             sorted(
                 os.listdir(
-                    os.path.join(self.graph.vertices_path, "person", str(marko.ident))
+                    os.path.join(
+                        self.graph.vertices_path, "person", str(marko.ident)
+                    )
                 )
             ),
             sorted(["properties.txt", "in-edges", "out-edges"]),
@@ -829,7 +827,6 @@ class TestPersistentGraph(unittest2.TestCase):
         )
 
     def test_add_edge(self):
-        self.graph.load()
         marko = self.graph.add_vertex("person", name="Marko")
         josh = self.graph.add_vertex("person", name="Josh")
         edge = self.graph.add_edge(marko, "knows", josh, since="school")
@@ -855,7 +852,9 @@ class TestPersistentGraph(unittest2.TestCase):
         self.assertEqual(
             sorted(
                 os.listdir(
-                    os.path.join(self.graph.edges_path, "knows", str(edge.ident))
+                    os.path.join(
+                        self.graph.edges_path, "knows", str(edge.ident)
+                    )
                 )
             ),
             sorted(["properties.txt", str(marko.ident), str(josh.ident)]),
@@ -888,11 +887,93 @@ class TestPersistentGraph(unittest2.TestCase):
         # check that the edge in the vertex in and out edge folders are
         # symlinked to the edge
         mark_out_edge_link = os.path.join(
-            self.graph.vertices_path, "person", str(marko.ident), "out-edges", str(edge.ident)
+            self.graph.vertices_path,
+            "person",
+            str(marko.ident),
+            "out-edges",
+            str(edge.ident),
         )
+
         josh_in_edge_link = os.path.join(
-            self.graph.vertices_path, "person", str(josh.ident), "in-edges", str(edge.ident)
+            self.graph.vertices_path,
+            "person",
+            str(josh.ident),
+            "in-edges",
+            str(edge.ident),
         )
 
         self.assertEqual(os.path.islink(mark_out_edge_link), True)
         self.assertEqual(os.path.islink(josh_in_edge_link), True)
+
+    def test_set_property(self):
+        marko = self.graph.add_vertex("person", name="Marko")
+        self.graph.set_property(marko, surname="Polo")
+
+        self.assertEqual(
+            sorted(
+                open(
+                    os.path.join(
+                        self.graph.vertices_path,
+                        "person",
+                        str(marko.ident),
+                        "properties.txt"
+                    )
+                ).readlines()
+            ),
+            sorted(
+                [
+                    "name=Marko\n",
+                    "surname=Polo\n",
+                ]
+            ),
+        )
+
+    def test_remove_vertex(self):
+        marko = self.graph.add_vertex("person", name="Marko")
+        josh = self.graph.add_vertex("person", name="Josh")
+
+        self.graph.remove_vertex(marko)
+
+        self.assertEqual(
+            sorted(
+                os.listdir(
+                    os.path.join(self.graph.vertices_path, "person")
+                )
+            ),
+            sorted([str(josh.ident)]),
+        )
+
+    def test_remove_edge(self):
+        marko = self.graph.add_vertex("person", name="Marko")
+        josh = self.graph.add_vertex("person", name="Josh")
+        spot = self.graph.add_vertex("dog", name="Spot")
+
+        edge = self.graph.add_edge(marko, "knows", josh)
+        edge2 = self.graph.add_edge(marko, "knows", spot)
+
+        self.graph.remove_edge(edge)
+
+        self.assertEqual(
+            sorted(
+                os.listdir(
+                    os.path.join(self.graph.edges_path, "knows")
+                )
+            ),
+            sorted([str(edge2.ident)]),
+        )
+
+    def test_add_vertex_constraints(self):
+        self.graph.add_vertex_constraint("person", "name")
+        self.assertEqual(
+            open(
+                os.path.join(
+                    self.graph.vertices_path,
+                    "constraints.txt"
+                ),
+            ).read(),
+            "person=name\n",
+        )
+
+    @unittest2.skip("Edges do not use constraints at this stage.")
+    def test_add_edge_constraints(self):
+        pass

@@ -444,6 +444,8 @@ class EntitySet(interfaces.IEntitySet):
 
         collection = self._prop_reference[entity.label]
         for key in entity.properties.iterkeys():
+            if key not in collection:
+                continue
             collection[key].discard(entity)
 
         super(EntitySet, self).remove(entity)
