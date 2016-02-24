@@ -331,6 +331,9 @@ class PersistentGraph(Graph):
         if self.path is None:
             self._create_path()
 
+    def _load_from_path(self, path):
+        raise NotImplemented("Booo, not working yet")
+
     def _create_path(self):
         self.path = mkdtemp(suffix="-ruruki-db")
         logging.info("Created temporary graph db path %r", self.path)

@@ -973,7 +973,3 @@ class TestPersistentGraph(unittest2.TestCase):
             ).read(),
             "person=name\n",
         )
-
-    @unittest2.skip("Edges do not use constraints at this stage.")
-    def test_add_edge_constraints(self):
-        pass
