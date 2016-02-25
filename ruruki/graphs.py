@@ -332,6 +332,12 @@ class PersistentGraph(Graph):
             self._create_path()
 
     def _load_from_path(self, path):
+        # self.vertices_constraints_path = os.path.join(
+        #     self.vertices_path, "constraints.txt"
+        # )
+        # self.edges_constraints_path = os.path.join(
+        #     self.edges_path, "constraints.txt"
+        # )
         raise NotImplemented("Booo, not working yet")
 
     def _create_path(self):
@@ -340,22 +346,32 @@ class PersistentGraph(Graph):
 
         # Create the vertices path
         self.vertices_path = os.path.join(self.path, "vertices")
-        os.makedirs(self.vertices_path)
-
-        # Create the edges path
         self.edges_path = os.path.join(self.path, "edges")
+
+        # Make the directories
+        os.makedirs(self.vertices_path)
         os.makedirs(self.edges_path)
 
         # Create constraint files
-        open(os.path.join(self.vertices_path, "constraints.txt"), "w").close()
-        open(os.path.join(self.edges_path, "constraints.txt"), "w").close()
+        self.vertices_constraints_path = os.path.join(
+            self.vertices_path, "constraints.json"
+        )
+        self.edges_constraints_path = os.path.join(
+            self.edges_path, "constraints.json"
+        )
+
+        # touch the constraint files
+        open(self.vertices_constraints_path, "w").close()
+        open(self.edges_constraints_path, "w").close()
 
     def add_vertex_constraint(self, label, key):
         super(PersistentGraph, self).add_vertex_constraint(label, key)
-        constraint_file = os.path.join(self.vertices_path, "constraints.txt")
-        with open(constraint_file, "w") as constraint_fh:
-            for label, key in self.get_vertex_constraints():
-                constraint_fh.write("{}={}\n".format(label, key))
+        with open(self.vertices_constraints_path, "w") as constraint_fh:
+            json.dump(
+                self.get_vertex_constraints(),
+                constraint_fh,
+                indent=4,
+            )
 
     def add_vertex(self, label=None, **kwargs):
         vertex = super(PersistentGraph, self).add_vertex(label, **kwargs)
@@ -411,15 +427,19 @@ class PersistentGraph(Graph):
         # Update the properties to the properties file
         properties_file = os.path.join(
             entity.properties["_path"],
-            "properties.txt"
+            "properties.json"
         )
 
         with open(properties_file, "w") as prop_file:
-            for key, value in entity.properties.items():
-                # we do not want the path metadata in the properties file.
-                if key == "_path":
-                    continue
-                prop_file.write("{}={}\n".format(key, value))
+            json.dump(
+                dict(
+                    (k, v)
+                    for k, v in entity.properties.items()
+                    if k != "_path"
+                ),
+                prop_file,
+                indent=4
+            )
 
     def remove_edge(self, edge):
         shutil.rmtree(edge.properties["_path"])

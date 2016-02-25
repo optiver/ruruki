@@ -758,12 +758,12 @@ class TestPersistentGraph(unittest2.TestCase):
         # check for the constraints files
         self.assertEqual(
             sorted(os.listdir(self.graph.vertices_path)),
-            sorted(["constraints.txt"]),
+            sorted(["constraints.json"]),
         )
 
         self.assertEqual(
             sorted(os.listdir(self.graph.edges_path)),
-            sorted(["constraints.txt"]),
+            sorted(["constraints.json"]),
         )
 
     def test_create_persistent_graph_with_path(self):
@@ -778,7 +778,7 @@ class TestPersistentGraph(unittest2.TestCase):
         # Check for the label folder
         self.assertEqual(
             sorted(os.listdir(self.graph.vertices_path)),
-            sorted(["constraints.txt", "dog", "person"]),
+            sorted(["constraints.json", "dog", "person"]),
         )
 
         # Check in the label folder for vertex ident folders
@@ -810,20 +810,22 @@ class TestPersistentGraph(unittest2.TestCase):
                     )
                 )
             ),
-            sorted(["properties.txt", "in-edges", "out-edges"]),
+            sorted(["properties.json", "in-edges", "out-edges"]),
         )
 
         # check that the properties file was populated
-        self.assertEqual(
-            open(
-                os.path.join(
-                    self.graph.vertices_path,
-                    "person",
-                    str(marko.ident),
-                    "properties.txt"
+        self.assertDictEqual(
+            json.load(
+                open(
+                    os.path.join(
+                        self.graph.vertices_path,
+                        "person",
+                        str(marko.ident),
+                        "properties.json"
+                    )
                 )
-            ).readlines(),
-            ["name=Marko\n"]
+            ),
+            {"name": "Marko"},
         )
 
     def test_add_edge(self):
@@ -834,7 +836,7 @@ class TestPersistentGraph(unittest2.TestCase):
         # Check for the label folder
         self.assertEqual(
             sorted(os.listdir(self.graph.edges_path)),
-            sorted(["constraints.txt", "knows"]),
+            sorted(["constraints.json", "knows"]),
         )
 
         # Check in the label folder for edge ident folders
@@ -857,7 +859,7 @@ class TestPersistentGraph(unittest2.TestCase):
                     )
                 )
             ),
-            sorted(["properties.txt", str(marko.ident), str(josh.ident)]),
+            sorted(["properties.json", str(marko.ident), str(josh.ident)]),
         )
 
         # check that the vertices in the edge folder are symlinks
@@ -873,15 +875,17 @@ class TestPersistentGraph(unittest2.TestCase):
 
         # check that the properties file was populated
         self.assertEqual(
-            open(
-                os.path.join(
-                    self.graph.edges_path,
-                    "knows",
-                    str(edge.ident),
-                    "properties.txt"
+            json.load(
+                open(
+                    os.path.join(
+                        self.graph.edges_path,
+                        "knows",
+                        str(edge.ident),
+                        "properties.json"
+                    )
                 )
-            ).readlines(),
-            ["since=school\n"]
+            ),
+            {"since": "school"},
         )
 
         # check that the edge in the vertex in and out edge folders are
@@ -909,23 +913,21 @@ class TestPersistentGraph(unittest2.TestCase):
         marko = self.graph.add_vertex("person", name="Marko")
         self.graph.set_property(marko, surname="Polo")
 
-        self.assertEqual(
-            sorted(
+        self.assertDictEqual(
+            json.load(
                 open(
                     os.path.join(
                         self.graph.vertices_path,
                         "person",
                         str(marko.ident),
-                        "properties.txt"
+                        "properties.json"
                     )
-                ).readlines()
+                )
             ),
-            sorted(
-                [
-                    "name=Marko\n",
-                    "surname=Polo\n",
-                ]
-            ),
+            {
+                "name": "Marko",
+                "surname": "Polo",
+            },
         )
 
     def test_remove_vertex(self):
@@ -965,11 +967,13 @@ class TestPersistentGraph(unittest2.TestCase):
     def test_add_vertex_constraints(self):
         self.graph.add_vertex_constraint("person", "name")
         self.assertEqual(
-            open(
-                os.path.join(
-                    self.graph.vertices_path,
-                    "constraints.txt"
-                ),
-            ).read(),
-            "person=name\n",
+            json.load(
+                open(
+                    os.path.join(
+                        self.graph.vertices_path,
+                        "constraints.json"
+                    ),
+                )
+            ),
+            [["person", "name"]],
         )
