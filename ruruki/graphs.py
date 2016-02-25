@@ -294,10 +294,10 @@ class PersistentGraph(Graph):
 
         path
            |_ vertices
-           |     |_ constraints.txt (file)
+           |     |_ constraints.json (file)
            |     |_ label
            |     |     |_ 0
-           |     |        |_ properties.txt (file)
+           |     |        |_ properties.json (file)
            |     |        |_ in-edges
            |     |        |     |_ 0 -> ../../../../edges/label/0 (symlink)
            |     |        |_ out-edges
@@ -305,18 +305,18 @@ class PersistentGraph(Graph):
            |     |
            |     |_ label
            |     |    |_ 1
-           |     |         |_ properties.txt (file)
+           |     |         |_ properties.json (file)
            |     |          |_ in-edges
            |     |          |     |_
            |     |          |_ out-edges
            |     |                |_ 0 -> ../../../../edges/label/0 (symlink)
            |
            |_ edges
-                 |_ constraints.txt
+                 |_ constraints.json
                  |_ label
                        |
                        |_0
-                         |_ properties.txt (file)
+                         |_ properties.json (file)
                          |_ ../../../vertices/0 (symlik)
                          |_ ../../../vertices/1 (symlik)
 
@@ -338,7 +338,8 @@ class PersistentGraph(Graph):
         # self.edges_constraints_path = os.path.join(
         #     self.edges_path, "constraints.txt"
         # )
-        raise NotImplemented("Booo, not working yet")
+        self.path = path
+        raise NotImplementedError("Booo, not working yet")
 
     def _create_path(self):
         self.path = mkdtemp(suffix="-ruruki-db")
