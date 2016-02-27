@@ -312,13 +312,14 @@ class PersistentGraph(Graph):
            |     |                |_ 0 -> ../../../../edges/label/0 (symlink)
            |
            |_ edges
-                 |_ constraints.json
                  |_ label
                        |
                        |_0
                          |_ properties.json (file)
-                         |_ ../../../vertices/0 (symlik)
-                         |_ ../../../vertices/1 (symlik)
+                         |_ head
+                         |   |_ ../../../vertices/0 (symlik)
+                         |_ tail
+                             |_ ../../../vertices/1 (symlik)
 
 
     :param path: Path to ruruki graph data on disk. If :obj:`None`, then
@@ -328,7 +329,9 @@ class PersistentGraph(Graph):
     def __init__(self, path=None):
         super(PersistentGraph, self).__init__()
         self.path = path
-        if self.path is None:
+        if path is not None:
+            self._load_from_path(path)
+        else:
             self._create_path()
 
     def _load_from_path(self, path):
@@ -339,7 +342,16 @@ class PersistentGraph(Graph):
         #     self.edges_path, "constraints.txt"
         # )
         self.path = path
-        raise NotImplementedError("Booo, not working yet")
+
+        self.vertices_path = os.path.join(self.path, "vertices")
+        self.vertices_constraints_path = os.path.join(
+            self.vertices_path, "constraints.json"
+        )
+        with open(self.vertices_constraints_path) as vconstraints_fh:
+            for label, key in json.load(vconstraints_fh).items():
+                self.add_vertex_constraint(label, key)
+
+        self.edges_path = os.path.join(self.path, "edges")
 
     def _create_path(self):
         self.path = mkdtemp(suffix="-ruruki-db")
@@ -357,13 +369,9 @@ class PersistentGraph(Graph):
         self.vertices_constraints_path = os.path.join(
             self.vertices_path, "constraints.json"
         )
-        self.edges_constraints_path = os.path.join(
-            self.edges_path, "constraints.json"
-        )
 
         # touch the constraint files
         open(self.vertices_constraints_path, "w").close()
-        open(self.edges_constraints_path, "w").close()
 
     def add_vertex_constraint(self, label, key):
         super(PersistentGraph, self).add_vertex_constraint(label, key)
@@ -389,17 +397,23 @@ class PersistentGraph(Graph):
         )
 
         edge_path = os.path.join(self.edges_path, label, str(edge.ident))
+        head_path = os.path.join(edge_path, "head")
+        tail_path = os.path.join(edge_path, "tail")
+
         os.makedirs(edge_path)
+        os.makedirs(head_path)
+        os.makedirs(tail_path)
+
         edge.set_property(_path=edge_path)
 
         os.symlink(
             head.properties["_path"],
-            os.path.join(edge_path, str(head.ident))
+            os.path.join(head_path, str(head.ident))
         )
 
         os.symlink(
             tail.properties["_path"],
-            os.path.join(edge_path, str(tail.ident))
+            os.path.join(tail_path, str(tail.ident))
         )
 
         os.symlink(

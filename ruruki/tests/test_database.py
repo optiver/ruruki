@@ -3,9 +3,11 @@
 # pylint: disable=protected-access
 # pylint: disable=too-many-public-methods
 # pylint: disable=too-many-statements
+# pylint: disable=too-many-lines
 
 import json
 import os
+import tempfile
 import unittest2
 from ruruki import create_graph
 from ruruki import interfaces
@@ -745,9 +747,124 @@ class TestGraphGetOrCreateEdges(base.TestBase):
         )
 
 
+
+def create_graph_mock_path():
+    """
+    Create the folllowing
+
+    path
+       |_ vertices
+       |     |_ constraints.json (file)
+       |     |_ label
+       |     |     |_ 0
+       |     |        |_ properties.json (file)
+       |     |        |_ in-edges
+       |     |        |     |_ 0 -> ../../../../edges/label/0 (symlink)
+       |     |        |_ out-edges
+       |     |              |_
+       |     |
+       |     |_ label
+       |         |_ 1
+       |              |_ properties.json (file)
+       |              |_ in-edges
+       |              |     |_
+       |              |_ out-edges
+       |                    |_ 0 -> ../../../../edges/label/0 (symlink)
+       |
+       |_ edges
+             |_ constraints.json
+             |_ label
+                   |
+                   |_0
+                     |_ properties.json (file)
+                     |_ head
+                     |   |_ ../../../vertices/0 (symlik)
+                     |_ tail
+                         |_ ../../../vertices/1 (symlik)
+    """
+    path = tempfile.mkdtemp()
+    vertices_path = os.path.join(path, "vertices")
+    os.makedirs(vertices_path)
+    edges_path = os.path.join(path, "edges")
+    os.makedirs(edges_path)
+
+    # create constraints
+    open(os.path.join(edges_path, "constraints.json"), "w").close()
+    json.dump(
+        {"person": "name"},
+        open(os.path.join(vertices_path, "constraints.json"), "w"),
+        indent=4,
+    )
+
+    # create two vertices
+    marko_path = os.path.join(vertices_path, "person", "0")
+    marko_in_edges_path = os.path.join(marko_path, "in-edges")
+    marko_out_edges_path = os.path.join(marko_path, "out-edges")
+    os.makedirs(marko_path)
+    os.makedirs(marko_in_edges_path)
+    os.makedirs(marko_out_edges_path)
+    json.dump(
+        {"name": "Marko"},
+        open(os.path.join(marko_path, "properties.json"), "w"),
+        indent=4,
+    )
+
+    josh_path = os.path.join(vertices_path, "person", "1")
+    josh_in_edges_path = os.path.join(josh_path, "in-edges")
+    josh_out_edges_path = os.path.join(josh_path, "out-edges")
+    os.makedirs(josh_path)
+    os.makedirs(josh_in_edges_path)
+    os.makedirs(josh_out_edges_path)
+    json.dump(
+        {"name": "Josh"},
+        open(os.path.join(josh_path, "properties.json"), "w"),
+        indent=4,
+    )
+
+    # create edge between the vertices
+    edge_path = os.path.join(edges_path, "knows", "0")
+    head_path = os.path.join(edge_path, "head")
+    tail_path = os.path.join(edge_path, "tail")
+    os.makedirs(edge_path)
+    os.makedirs(head_path)
+    os.makedirs(tail_path)
+
+    os.symlink(marko_path, os.path.join(head_path, "0"))
+    os.symlink(josh_path, os.path.join(tail_path, "1"))
+
+    return path
+
+
 class TestPersistentGraph(unittest2.TestCase):
     def setUp(self):
         self.graph = PersistentGraph()
+
+    def test_import_from_path(self):
+        path = create_graph_mock_path()
+        graph = PersistentGraph(path)
+
+        # check that the paths are setup correctly
+        self.assertEqual(graph.path, path)
+
+        self.assertEqual(
+            graph.vertices_path,
+            os.path.join(path, "vertices")
+        )
+        self.assertEqual(
+            graph.vertices_constraints_path,
+            os.path.join(path, "vertices", "constraints.json")
+        )
+
+        self.assertEqual(
+            graph.edges_path,
+            os.path.join(path, "edges")
+        )
+
+        # check that the constraints have been imported
+        self.assertEqual(
+            sorted(graph.get_vertex_constraints()),
+            [("person", "name")],
+        )
 
     def test_create_persistent_graph_with_no_path(self):
         self.assertEqual(
@@ -760,15 +877,6 @@ class TestPersistentGraph(unittest2.TestCase):
             sorted(os.listdir(self.graph.vertices_path)),
             sorted(["constraints.json"]),
         )
-
-        self.assertEqual(
-            sorted(os.listdir(self.graph.edges_path)),
-            sorted(["constraints.json"]),
-        )
-
-    def test_create_persistent_graph_with_path(self):
-        graph = PersistentGraph("/some/path")
-        self.assertEqual(graph.path, "/some/path")
 
     def test_add_vertex(self):
         marko = self.graph.add_vertex("person", name="Marko")
@@ -836,7 +944,7 @@ class TestPersistentGraph(unittest2.TestCase):
         # Check for the label folder
         self.assertEqual(
             sorted(os.listdir(self.graph.edges_path)),
-            sorted(["constraints.json", "knows"]),
+            ["knows"],
         )
 
         # Check in the label folder for edge ident folders
@@ -849,8 +957,8 @@ class TestPersistentGraph(unittest2.TestCase):
             sorted([str(edge.ident)]),
         )
 
-        # check in the edge folder for the property file and the
-        # vertices symlinks
+        # check in the edge folder has a properties file, and a head and tail
+        # directory
         self.assertEqual(
             sorted(
                 os.listdir(
@@ -859,17 +967,34 @@ class TestPersistentGraph(unittest2.TestCase):
                     )
                 )
             ),
-            sorted(["properties.json", str(marko.ident), str(josh.ident)]),
+            sorted(
+                [
+                    "properties.json",
+                    "head",
+                    "tail"
+                ]
+            ),
         )
 
         # check that the vertices in the edge folder are symlinks
         mark_link = os.path.join(
-            self.graph.edges_path, "knows", str(edge.ident), str(marko.ident)
-        )
-        josh_link = os.path.join(
-            self.graph.edges_path, "knows", str(edge.ident), str(marko.ident)
+            self.graph.edges_path,
+            "knows",
+            str(edge.ident),
+            "head",
+            str(marko.ident),
         )
 
+        josh_link = os.path.join(
+            self.graph.edges_path,
+            "knows",
+            str(edge.ident),
+            "tail",
+            str(josh.ident),
+        )
+
+        self.assertEqual(os.path.exists(mark_link), True)
+        self.assertEqual(os.path.exists(josh_link), True)
         self.assertEqual(os.path.islink(mark_link), True)
         self.assertEqual(os.path.islink(josh_link), True)
 
