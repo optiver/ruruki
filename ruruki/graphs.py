@@ -325,9 +325,14 @@ class PersistentGraph(Graph):
     :param path: Path to ruruki graph data on disk. If :obj:`None`, then
         a temporary path will be created.
     :type path: :class:`str`
+    :raises EnvironmentError: If parameter `path` is missing the required
+        files and directories to import.
     """
     def __init__(self, path=None):
         super(PersistentGraph, self).__init__()
+        self.vertices_path = None
+        self.edges_path = None
+        self.vertices_constraints_path = None
         self.path = path
         if path is not None:
             self._load_from_path(path)
@@ -335,43 +340,99 @@ class PersistentGraph(Graph):
             self._create_path()
 
     def _load_from_path(self, path):
-        # self.vertices_constraints_path = os.path.join(
-        #     self.vertices_path, "constraints.txt"
-        # )
-        # self.edges_constraints_path = os.path.join(
-        #     self.edges_path, "constraints.txt"
-        # )
-        self.path = path
+        def check_path_exists(path):
+            if not os.path.exists(path):
+                raise EnvironmentError(
+                    "Could not find the directory {0!r}".format(path)
+                )
 
+        self.path = path
+        check_path_exists(path)
+
+        # set the vertex path and check that it exists.
         self.vertices_path = os.path.join(self.path, "vertices")
+        check_path_exists(self.vertices_path)
+
+        # set the edge path and check that it exists.
+        self.edges_path = os.path.join(self.path, "edges")
+        check_path_exists(self.edges_path)
+
+        # check and the load the vertices constraints
         self.vertices_constraints_path = os.path.join(
             self.vertices_path, "constraints.json"
         )
-        with open(self.vertices_constraints_path) as vconstraints_fh:
+        check_path_exists(path)
+
+        self._load_vconstraints_from_path(self.vertices_constraints_path)
+        self._load_vertices_from_path(self.vertices_path)
+
+    def _load_vconstraints_from_path(self, path):
+        with open(path) as vconstraints_fh:
             for label, key in json.load(vconstraints_fh).items():
                 self.add_vertex_constraint(label, key)
 
-        self.edges_path = os.path.join(self.path, "edges")
+    def _load_vertices_from_path(self, path):
+        # walk the path loading vertices that are found.
+        for label in os.listdir(path):
 
-    def _create_path(self):
-        self.path = mkdtemp(suffix="-ruruki-db")
-        logging.info("Created temporary graph db path %r", self.path)
+            label_path = os.path.join(path, label)
 
-        # Create the vertices path
-        self.vertices_path = os.path.join(self.path, "vertices")
-        self.edges_path = os.path.join(self.path, "edges")
+            # skip over files because we are only looking for directories.
+            if os.path.isfile(label_path):
+                continue
 
-        # Make the directories
+            # run over all the vertice id's that we can find
+            # and loading the properties if found.
+            for dirname in sorted(os.listdir(label_path)):
+                properties = {}
+                properties_filename = os.path.join(
+                    label_path,
+                    dirname,
+                    "properties.json"
+                )
+
+                if os.path.exists(properties_filename):
+                    with open(properties_filename) as properties_filehandle:
+                        properties = json.load(properties_filehandle)
+
+                # reset the id to the id being loaded.
+                self._id_tracker.vid = int(dirname)
+                super(PersistentGraph, self).add_vertex(label, **properties)
+
+    def _create_vertex_skel(self, path):
+        """
+        Create a vertex skeleton path.
+
+        :param path: Path to create the vertex skeleton structure in.
+        :type path: :class:`str`
+        """
+        self.vertices_path = os.path.join(path, "vertices")
         os.makedirs(self.vertices_path)
-        os.makedirs(self.edges_path)
 
-        # Create constraint files
         self.vertices_constraints_path = os.path.join(
             self.vertices_path, "constraints.json"
         )
+        with open(self.vertices_constraints_path, "w") as constraint_fh:
+            constraint_fh.write("{}")
 
-        # touch the constraint files
-        open(self.vertices_constraints_path, "w").close()
+    def _create_edge_skel(self, path):
+        """
+        Create a edge skeleton path.
+
+        :param path: Path to create the edge skeleton structure in.
+        :type path: :class:`str`
+        """
+        self.edges_path = os.path.join(path, "edges")
+        os.makedirs(self.edges_path)
+
+    def _create_path(self):
+        """
+        Create a complete database skeleton path.
+        """
+        self.path = mkdtemp(suffix="-ruruki-db")
+        logging.info("Created temporary graph db path %r", self.path)
+        self._create_vertex_skel(self.path)
+        self._create_edge_skel(self.path)
 
     def add_vertex_constraint(self, label, key):
         super(PersistentGraph, self).add_vertex_constraint(label, key)

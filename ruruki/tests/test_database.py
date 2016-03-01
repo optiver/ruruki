@@ -747,7 +747,6 @@ class TestGraphGetOrCreateEdges(base.TestBase):
         )
 
 
-
 def create_graph_mock_path():
     """
     Create the folllowing
@@ -865,6 +864,68 @@ class TestPersistentGraph(unittest2.TestCase):
             sorted(graph.get_vertex_constraints()),
             [("person", "name")],
         )
+
+    def test_import_from_path_missing_vertices_directory(self):
+        path = tempfile.mkdtemp()
+        os.makedirs(os.path.join(path, "edges"))
+        self.assertRaises(
+            EnvironmentError,
+            PersistentGraph,
+            path
+        )
+
+    def test_import_from_path_missing_vertices_constraints(self):
+        path = tempfile.mkdtemp()
+        os.makedirs(os.path.join(path, "vertices"))
+        os.makedirs(os.path.join(path, "edges"))
+        self.assertRaises(
+            EnvironmentError,
+            PersistentGraph,
+            path
+        )
+
+    def test_import_from_path_missing_edges_directory(self):
+        path = tempfile.mkdtemp()
+        os.makedirs(os.path.join(path, "vertices"))
+        fh = open(os.path.join(path, "vertices", "constraints.json"), "w")
+        fh.write("{}")
+        fh.close()
+        self.assertRaises(
+            EnvironmentError,
+            PersistentGraph,
+            path
+        )
+
+    def test_import_from_path_loaded_vertices(self):
+        path = create_graph_mock_path()
+        graph = PersistentGraph(path)
+
+        self.assertEqual(len(graph.vertices), 2)
+        marko = graph.get_vertices(name="Marko").all()[0]
+        self.assertDictEqual(
+            marko.as_dict(),
+            {
+                "id": 0,
+                "label": "person",
+                "metadata": {"in_edge_count": 0, "out_edge_count": 0},
+                "properties": {"name": "Marko"}
+            }
+        )
+
+        josh = graph.get_vertices(name="Josh").all()[0]
+        self.assertDictEqual(
+            josh.as_dict(),
+            {
+                "id": 1,
+                "label": "person",
+                "metadata": {"in_edge_count": 0, "out_edge_count": 0},
+                "properties": {"name": "Josh"}
+            }
+        )
+
+        # check that the next vertex has an id of 3
+        spot = graph.add_vertex("dog", name="Spot")
+        self.assertEqual(spot.ident, 2)
 
     def test_create_persistent_graph_with_no_path(self):
         self.assertEqual(
