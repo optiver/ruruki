@@ -865,6 +865,29 @@ class TestPersistentGraph(unittest2.TestCase):
             [("person", "name")],
         )
 
+    def test_import_with_vertices_missing_properties_file(self):
+        path = create_graph_mock_path()
+        os.remove(
+            os.path.join(
+                path,
+                "vertices",
+                "person",
+                "0",
+                "properties.json"
+            )
+        )
+        graph = PersistentGraph(path)
+        vertex = graph.get_vertex(0)
+        self.assertDictEqual(
+            vertex.as_dict(),
+            {
+                "id": 0,
+                "label": "person",
+                "metadata": {"in_edge_count": 0, "out_edge_count": 0},
+                "properties": {}
+            }
+        )
+
     def test_import_from_path_missing_vertices_directory(self):
         path = tempfile.mkdtemp()
         os.makedirs(os.path.join(path, "edges"))

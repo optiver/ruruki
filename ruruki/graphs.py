@@ -340,7 +340,24 @@ class PersistentGraph(Graph):
             self._create_path()
 
     def _load_from_path(self, path):
+        """
+        Scan through the given database path and load/import up all the
+        relevant vertices, vertices constraints, and edges.
+
+        :param path: Path to import.
+        :type path: :class:`str`
+        :raises EnvironmentError: If the path is missing or if the path
+            does not contain the required vertices and edges folders.
+        """
         def check_path_exists(path):
+            """
+            Simple internal helper function for checking the existence of
+            a path.
+
+            :param path: Path to check if it exists.
+            :type path: :class:`str`
+            :raises EnvironmentError: Is raised if the path does not exists.
+            """
             if not os.path.exists(path):
                 raise EnvironmentError(
                     "Could not find the directory {0!r}".format(path)
@@ -367,11 +384,23 @@ class PersistentGraph(Graph):
         self._load_vertices_from_path(self.vertices_path)
 
     def _load_vconstraints_from_path(self, path):
+        """
+        Open, parse and load the vertices constraints.
+
+        :param path: Vertices constraints file to open, parse and import.
+        :type path: :class:`str`
+        """
         with open(path) as vconstraints_fh:
             for label, key in json.load(vconstraints_fh).items():
                 self.add_vertex_constraint(label, key)
 
     def _load_vertices_from_path(self, path):
+        """
+        Scan through the given path and load/import all the vertices.
+
+        :param path: Vertices Path to walk and import.
+        :type path: :class:`str`
+        """
         # walk the path loading vertices that are found.
         for label in os.listdir(path):
 
