@@ -562,11 +562,10 @@ class PersistentGraph(Graph):
     def add_vertex_constraint(self, label, key):
         super(PersistentGraph, self).add_vertex_constraint(label, key)
         with open(self.vertices_constraints_path, "w") as constraint_fh:
-            json.dump(
-                self.get_vertex_constraints(),
-                constraint_fh,
-                indent=4,
-            )
+            data = []
+            for label, key in self.get_vertex_constraints():
+                data.append({"label": label, "key": key})
+            json.dump(data, constraint_fh, indent=4)
 
     def add_vertex(self, label=None, **kwargs):
         vertex = super(PersistentGraph, self).add_vertex(label, **kwargs)

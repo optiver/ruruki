@@ -1283,6 +1283,7 @@ class TestPersistentGraph(unittest2.TestCase):
 
     def test_add_vertex_constraints(self):
         self.graph.add_vertex_constraint("person", "name")
+        print self.graph.vertices_path
         self.assertEqual(
             json.load(
                 open(
@@ -1292,5 +1293,10 @@ class TestPersistentGraph(unittest2.TestCase):
                     ),
                 )
             ),
-            [["person", "name"]],
+            [
+                {
+                    "label": "person",
+                    "key": "name"
+                }
+            ],
         )
