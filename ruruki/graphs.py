@@ -323,7 +323,8 @@ class PersistentGraph(Graph):
 
 
     :param path: Path to ruruki graph data on disk. If :obj:`None`, then
-        a temporary path will be created.
+        a temporary path will be created, else passing in an empty ``path``
+        will result in the creation of the graph data in the provided path.
     :type path: :class:`str`
     :raises EnvironmentError: If parameter `path` is missing the required
         files and directories to import.
@@ -365,6 +366,12 @@ class PersistentGraph(Graph):
 
         self.path = path
         check_path_exists(path)
+
+        # check if there is are the required ``vertices`` and ``edges``
+        # folders, else create the skeletons.
+        if not os.listdir(self.path):
+            self._create_vertex_skel(self.path)
+            self._create_edge_skel(self.path)
 
         # set the vertex path and check that it exists.
         self.vertices_path = os.path.join(self.path, "vertices")

@@ -870,6 +870,60 @@ class TestPersistentGraph(unittest2.TestCase):
             [("person", "name")],
         )
 
+    def test_import_from_empty_path(self):
+        path = tempfile.mkdtemp()
+        graph = PersistentGraph(path)
+
+        # check the top level directories have been created.
+        self.assertEqual(
+            sorted(os.listdir(graph.path)),
+            sorted(["vertices", "edges"]),
+        )
+
+        # check the vertices directory and other files have been created.
+        self.assertEqual(
+            sorted(os.listdir(graph.vertices_path)),
+            sorted(["constraints.json"]),
+        )
+
+    def test_import_from_empty_path_data_written_new_empty_path(self):
+        # this is just to check that data is written to the empty
+        # path that was provided and automatically setup.
+        path = tempfile.mkdtemp()
+        graph = PersistentGraph(path)
+
+        marko = graph.get_or_create_vertex("person", name="Marko")
+        spot = graph.get_or_create_vertex("dog", name="Spot")
+        graph.get_or_create_edge(marko, "owns", spot)
+
+
+        # Just check a couple things, because we will assume that if
+        # we have some data in the right place, all the reset should be
+        # there too.
+
+        self.assertEqual(
+            sorted(os.listdir(graph.vertices_path)),
+            sorted(["constraints.json", "person", "dog"]),
+        )
+
+        self.assertEqual(
+            sorted(
+                os.listdir(
+                    os.path.join(
+                        graph.vertices_path,
+                        "person",
+                        str(marko.ident)
+                    )
+                )
+            ),
+            sorted(["in-edges", "out-edges", "properties.json"]),
+        )
+
+        self.assertEqual(
+            sorted(os.listdir(graph.edges_path)),
+            sorted(["owns"]),
+        )
+
     def test_import_with_vertices_missing_properties_file(self):
         path = create_graph_mock_path()
         os.remove(
