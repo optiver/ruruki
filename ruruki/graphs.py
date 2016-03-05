@@ -380,8 +380,10 @@ class PersistentGraph(Graph):
         )
         check_path_exists(path)
 
+        # load all the constraint, vertices, and edges
         self._load_vconstraints_from_path(self.vertices_constraints_path)
         self._load_vertices_from_path(self.vertices_path)
+        self._load_edges_from_path(self.edges_path)
 
     def _load_vconstraints_from_path(self, path):
         """
@@ -397,6 +399,19 @@ class PersistentGraph(Graph):
     def _load_vertices_from_path(self, path):
         """
         Scan through the given path and load/import all the vertices.
+
+        .. code::
+
+            path
+               |_ vertices
+                    |_ constraints.json (file)
+                    |_ label
+                    |     |_ 0
+                    |        |_ properties.json (file)
+                    |
+                    |_ label
+                         |_ 1
+                            |_ properties.json (file)
 
         :param path: Vertices Path to walk and import.
         :type path: :class:`str`
@@ -427,6 +442,80 @@ class PersistentGraph(Graph):
                 # reset the id to the id being loaded.
                 self._id_tracker.vid = int(dirname)
                 super(PersistentGraph, self).add_vertex(label, **properties)
+
+    def _load_edges_from_path(self, path):
+        """
+        Scan through the given path and load/import all the edges.
+
+        .. code::
+
+            path
+               |_ edges
+                     |_ label
+                          |_0
+                            |_ properties.json (file)
+                            |_ head
+                            |   |_ ../../../vertices/0 (symlik)
+                            |_ tail
+                                |_ ../../../vertices/1 (symlik)
+
+        :param path: Edges Path to walk and import.
+        :type path: :class:`str`
+        :raises KeyError: If the head or tail of the edge being
+            imported is unknown.
+        """
+        # walk the path loading edges that are found.
+        for label in os.listdir(path):
+
+            label_path = os.path.join(path, label)
+
+            # skip over files because we are only looking for directories.
+            if os.path.isfile(label_path):
+                continue
+
+            # run over all the edge id's that we can find
+            # and loading the properties if found.
+            for dirname in sorted(os.listdir(label_path)):
+                properties = {}
+                properties_filename = os.path.join(
+                    label_path,
+                    dirname,
+                    "properties.json"
+                )
+
+                properties = {}
+                if os.path.exists(properties_filename):
+                    with open(properties_filename) as properties_filehandle:
+                        properties = json.load(properties_filehandle)
+
+                head_id = os.listdir(
+                    os.path.join(
+                        label_path,
+                        dirname,
+                        "head"
+                    )
+                )[0]
+
+                head = self.get_vertex(int(head_id))
+
+                tail_id = os.listdir(
+                    os.path.join(
+                        label_path,
+                        dirname,
+                        "tail"
+                    )
+                )[0]
+
+                tail = self.get_vertex(int(tail_id))
+
+                # reset the id to the id being loaded.
+                self._id_tracker.eid = int(dirname)
+                super(PersistentGraph, self).add_edge(
+                    head,
+                    label,
+                    tail,
+                    **properties
+                )
 
     def _create_vertex_skel(self, path):
         """

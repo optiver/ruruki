@@ -827,6 +827,11 @@ def create_graph_mock_path():
     os.makedirs(edge_path)
     os.makedirs(head_path)
     os.makedirs(tail_path)
+    json.dump(
+        {"since": "school"},
+        open(os.path.join(edge_path, "properties.json"), "w"),
+        indent=4,
+    )
 
     os.symlink(marko_path, os.path.join(head_path, "0"))
     os.symlink(josh_path, os.path.join(tail_path, "1"))
@@ -878,15 +883,7 @@ class TestPersistentGraph(unittest2.TestCase):
         )
         graph = PersistentGraph(path)
         vertex = graph.get_vertex(0)
-        self.assertDictEqual(
-            vertex.as_dict(),
-            {
-                "id": 0,
-                "label": "person",
-                "metadata": {"in_edge_count": 0, "out_edge_count": 0},
-                "properties": {}
-            }
-        )
+        self.assertDictEqual(vertex.properties, {})
 
     def test_import_from_path_missing_vertices_directory(self):
         path = tempfile.mkdtemp()
@@ -919,32 +916,89 @@ class TestPersistentGraph(unittest2.TestCase):
             path
         )
 
+    def test_import_from_path_loaded_edges(self):
+        path = create_graph_mock_path()
+        graph = PersistentGraph(path)
+
+        self.assertEqual(len(graph.edges), 1)
+        marko_josh = graph.get_edge(0)
+        self.assertDictEqual(
+            marko_josh.as_dict(),
+            {
+                "id": 0,
+                "label": "knows",
+                "metadata": {},
+                "head_id": 0,
+                "tail_id": 1,
+                "properties": {"since": "school"},
+            }
+        )
+
+    def test_import_from_path_loaded_edges_missing_properties_file(self):
+        path = create_graph_mock_path()
+
+        # deleted the edges properties file.
+        os.remove(
+            os.path.join(
+                path,
+                "edges",
+                "knows",
+                "0",
+                "properties.json"
+            )
+        )
+
+        graph = PersistentGraph(path)
+
+        marko = graph.get_vertex(0)
+        josh = graph.get_vertex(1)
+        marko_josh = graph.get_edge(0)
+
+        self.assertEqual(len(graph.edges), 1)
+        self.assertEqual(marko_josh.head, marko)
+        self.assertEqual(marko_josh.tail, josh)
+        self.assertDictEqual(marko_josh.properties, {})
+
+    def test_import_from_path_loaded_edges_unknown_vertex(self):
+        path = create_graph_mock_path()
+        old = os.path.join(
+            path,
+            "edges",
+            "knows",
+            "0",
+            "head",
+            "0"
+        )
+        print old
+        new = os.path.join(
+            path,
+            "edges",
+            "knows",
+            "0",
+            "head",
+            "5"
+        )
+        os.rename(old, new)
+
+        self.assertRaises(
+            KeyError,
+            PersistentGraph,
+            path
+        )
+
     def test_import_from_path_loaded_vertices(self):
         path = create_graph_mock_path()
         graph = PersistentGraph(path)
 
         self.assertEqual(len(graph.vertices), 2)
-        marko = graph.get_vertices(name="Marko").all()[0]
-        self.assertDictEqual(
-            marko.as_dict(),
-            {
-                "id": 0,
-                "label": "person",
-                "metadata": {"in_edge_count": 0, "out_edge_count": 0},
-                "properties": {"name": "Marko"}
-            }
-        )
 
-        josh = graph.get_vertices(name="Josh").all()[0]
-        self.assertDictEqual(
-            josh.as_dict(),
-            {
-                "id": 1,
-                "label": "person",
-                "metadata": {"in_edge_count": 0, "out_edge_count": 0},
-                "properties": {"name": "Josh"}
-            }
-        )
+        # test marko was imported and has id 0
+        marko = graph.get_vertex(0)
+        self.assertDictEqual(marko.properties, {"name": "Marko"})
+
+        # test josh was imported and has id 1
+        josh = graph.get_vertex(1)
+        self.assertDictEqual(josh.properties, {"name": "Josh"})
 
         # check that the next vertex has an id of 3
         spot = graph.add_vertex("dog", name="Spot")
