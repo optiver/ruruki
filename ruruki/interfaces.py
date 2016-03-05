@@ -52,7 +52,7 @@ class DatabaseException(Exception):
 
 class UnknownEntityError(DatabaseException):
     """
-    Raised is the entity is unknown to the database.
+    Raised if the entity is unknown to the database.
     """
 
 
