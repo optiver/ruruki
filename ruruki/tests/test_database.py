@@ -7,6 +7,7 @@
 
 import json
 import os
+import shutil
 import tempfile
 import unittest2
 from ruruki import create_graph
@@ -870,9 +871,9 @@ class TestPersistentGraph(unittest2.TestCase):
             [("person", "name")],
         )
 
-    def test_import_from_empty_path(self):
+    def test_import_from_empty_path_with_auto_create(self):
         path = tempfile.mkdtemp()
-        graph = PersistentGraph(path)
+        graph = PersistentGraph(path, auto_create=True)
 
         # check the top level directories have been created.
         self.assertEqual(
@@ -886,11 +887,42 @@ class TestPersistentGraph(unittest2.TestCase):
             sorted(["constraints.json"]),
         )
 
+    def test_import_from_empty_path_without_auto_create(self):
+        path = tempfile.mkdtemp()
+        self.assertRaises(
+            EnvironmentError,
+            PersistentGraph,
+            path,
+            auto_create=False
+        )
+
+    def test_import_from_path_auto_create_has_edges_missing_vertices(self):
+        path = create_graph_mock_path()
+        shutil.rmtree(
+            os.path.join(
+                path,
+                "vertices",
+            )
+        )
+
+        self.assertRaises(
+            EnvironmentError,
+            PersistentGraph,
+            path,
+            auto_create=True
+        )
+
+    def test_import_from_path_auto_create_has_no_missing_dirs(self):
+        path = create_graph_mock_path()
+        graph = PersistentGraph(path, auto_create=True)
+        self.assertEqual(len(graph.vertices), 2)
+        self.assertEqual(len(graph.edges), 1)
+
     def test_import_from_empty_path_data_written_new_empty_path(self):
         # this is just to check that data is written to the empty
         # path that was provided and automatically setup.
         path = tempfile.mkdtemp()
-        graph = PersistentGraph(path)
+        graph = PersistentGraph(path, auto_create=True)
 
         marko = graph.get_or_create_vertex("person", name="Marko")
         spot = graph.get_or_create_vertex("dog", name="Spot")

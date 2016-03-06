@@ -325,28 +325,52 @@ class PersistentGraph(Graph):
     :param path: Path to ruruki graph data on disk. If :obj:`None`, then
         a temporary path will be created, else passing in an empty ``path``
         will result in the creation of the graph data in the provided path.
+    :param auto_create: If True, then missing ``vertices`` or ``edges``
+        directories will be created.
+    :type auto_create: :class:`bool`
     :type path: :class:`str`
     :raises EnvironmentError: If parameter `path` is missing the required
         files and directories to import.
     """
-    def __init__(self, path=None):
+    def __init__(self, path=None, auto_create=False):
         super(PersistentGraph, self).__init__()
-        self.vertices_path = None
-        self.edges_path = None
-        self.vertices_constraints_path = None
         self.path = path
+
         if path is not None:
-            self._load_from_path(path)
+            self.vertices_path = os.path.join(self.path, "vertices")
+            self.edges_path = os.path.join(self.path, "edges")
+            self.vertices_constraints_path = os.path.join(
+                self.vertices_path, "constraints.json"
+            )
+
+            if auto_create is True:
+                self._auto_create()
+
+            self._load_from_path()
         else:
             self._create_path()
 
-    def _load_from_path(self, path):
+
+
+    def _auto_create(self):
+        """
+        Check that ``vertices`` and ``edges`` directories exists, and if
+        not create them and all the other required files and folders.
+        """
+        status = [
+            os.path.exists(self.vertices_path),
+            os.path.exists(self.edges_path),
+        ]
+
+        if not all(status):
+            self._create_vertex_skel(self.path)
+            self._create_edge_skel(self.path)
+
+    def _load_from_path(self):
         """
         Scan through the given database path and load/import up all the
         relevant vertices, vertices constraints, and edges.
 
-        :param path: Path to import.
-        :type path: :class:`str`
         :raises EnvironmentError: If the path is missing or if the path
             does not contain the required vertices and edges folders.
         """
@@ -364,28 +388,12 @@ class PersistentGraph(Graph):
                     "Could not find the directory {0!r}".format(path)
                 )
 
-        self.path = path
-        check_path_exists(path)
+        check_path_exists(self.path)
 
-        # check if there is are the required ``vertices`` and ``edges``
-        # folders, else create the skeletons.
-        if not os.listdir(self.path):
-            self._create_vertex_skel(self.path)
-            self._create_edge_skel(self.path)
-
-        # set the vertex path and check that it exists.
-        self.vertices_path = os.path.join(self.path, "vertices")
+        # Check that the required paths exist
         check_path_exists(self.vertices_path)
-
-        # set the edge path and check that it exists.
-        self.edges_path = os.path.join(self.path, "edges")
         check_path_exists(self.edges_path)
-
-        # check and the load the vertices constraints
-        self.vertices_constraints_path = os.path.join(
-            self.vertices_path, "constraints.json"
-        )
-        check_path_exists(path)
+        check_path_exists(self.vertices_constraints_path)
 
         # load all the constraint, vertices, and edges
         self._load_vconstraints_from_path(self.vertices_constraints_path)
