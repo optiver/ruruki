@@ -321,7 +321,6 @@ class PersistentGraph(Graph):
                          |_ tail
                              |_ ../../../vertices/1 (symlik)
 
-
     :param path: Path to ruruki graph data on disk. If :obj:`None`, then
         a temporary path will be created, else passing in an empty ``path``
         will result in the creation of the graph data in the provided path.
@@ -349,8 +348,6 @@ class PersistentGraph(Graph):
             self._load_from_path()
         else:
             self._create_path()
-
-
 
     def _auto_create(self):
         """
@@ -408,8 +405,8 @@ class PersistentGraph(Graph):
         :type path: :class:`str`
         """
         with open(path) as vconstraints_fh:
-            for label, key in json.load(vconstraints_fh).items():
-                self.add_vertex_constraint(label, key)
+            for each in json.load(vconstraints_fh):
+                self.add_vertex_constraint(each["label"], each["key"])
 
     def _load_vertices_from_path(self, path):
         """
@@ -546,7 +543,7 @@ class PersistentGraph(Graph):
             self.vertices_path, "constraints.json"
         )
         with open(self.vertices_constraints_path, "w") as constraint_fh:
-            constraint_fh.write("{}")
+            constraint_fh.write("[]")
 
     def _create_edge_skel(self, path):
         """

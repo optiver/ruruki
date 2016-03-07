@@ -791,7 +791,12 @@ def create_graph_mock_path():
     # create constraints
     open(os.path.join(edges_path, "constraints.json"), "w").close()
     json.dump(
-        {"person": "name"},
+        [
+            {
+                "label": "person",
+                "key": "name",
+            }
+        ],
         open(os.path.join(vertices_path, "constraints.json"), "w"),
         indent=4,
     )
