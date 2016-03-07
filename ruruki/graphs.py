@@ -497,6 +497,15 @@ class PersistentGraph(Graph):
             # run over all the edge id's that we can find
             # and loading the properties if found.
             for dirname in sorted(os.listdir(label_path)):
+                try:
+                    ident = int(dirname)
+                except ValueError:
+                    logging.error(
+                        "%r is not a expected vertex id number, skipping",
+                        dirname
+                    )
+                    continue
+
                 properties = {}
                 properties_filename = os.path.join(
                     label_path,
@@ -530,7 +539,7 @@ class PersistentGraph(Graph):
                 tail = self.get_vertex(int(tail_id))
 
                 # reset the id to the id being loaded.
-                self._id_tracker.eid = int(dirname)
+                self._id_tracker.eid = ident
                 super(PersistentGraph, self).add_edge(
                     head,
                     label,
