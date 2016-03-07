@@ -1025,6 +1025,20 @@ class TestPersistentGraph(unittest2.TestCase):
             }
         )
 
+    def test_import_from_path_edges_with_bogus_extra_dir(self):
+        path = create_graph_mock_path()
+        os.mkdir(os.path.join(path, "edges", "knows", "bogus_dir"))
+        graph = PersistentGraph(path)
+        # should still have loaded the edge
+        self.assertEqual(len(graph.edges), 1)
+
+    def test_import_from_path_vertices_with_bogus_extra_dir(self):
+        path = create_graph_mock_path()
+        os.mkdir(os.path.join(path, "vertices", "person", "bogus_dir"))
+        graph = PersistentGraph(path)
+        # should still have loaded the edge
+        self.assertEqual(len(graph.vertices), 2)
+
     def test_import_from_path_loaded_edges_missing_properties_file(self):
         path = create_graph_mock_path()
 

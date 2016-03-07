@@ -12,6 +12,117 @@ from ruruki.entities import Vertex, Edge
 from ruruki.entities import EntitySet
 
 
+def _search_for_edge_ids(path):
+    """
+    Internal helper function to search for edges identity numbers
+    based in the directories and the head and tail vertices identity
+    numbers.
+
+    :param path: Edges Path to find number directories.
+    :type path: :class:`str`
+    :return: Yields the integer number, head id, label, tail id and the
+        properties file path if found.
+    :rtype: Iterator of :class:`tuple`
+        (
+            :class:`int`, :class:`int`, :class:`str`,
+            :class:`int`, :class:`str` or :obj:`None`
+        )
+    """
+    for label in os.listdir(path):
+
+        label_path = os.path.join(path, label)
+
+        # skip over files because we are only looking for directories.
+        if os.path.isfile(label_path):
+            continue
+
+        # run over all the edge id's that we can find
+        # and loading the properties if found.
+        for each in os.listdir(label_path):
+            try:
+                ident = int(each)
+            except ValueError:
+                logging.error(
+                    "%r is not a expected edge id number, skipping",
+                    each
+                )
+                continue
+
+            propfile = os.path.join(
+                label_path,
+                each,
+                "properties.json"
+            )
+
+            head_id = int(
+                os.listdir(
+                    os.path.join(
+                        label_path,
+                        each,
+                        "head"
+                    )
+                )[0]
+            )
+
+            tail_id = int(
+                os.listdir(
+                    os.path.join(
+                        label_path,
+                        each,
+                        "tail"
+                    )
+                )[0]
+            )
+
+            yield (
+                ident,
+                int(head_id),
+                label,
+                int(tail_id),
+                propfile if os.path.exists(propfile) else None
+            )
+
+
+def _search_for_vertice_id(path):
+    """
+    Internal helper function to search for vertices identity numbers
+    based in the directories.
+
+    :param path: Vertice path to find number directories.
+    :type path: :class:`str`
+    :return: Yields the integer number, label and the properties file path
+        if found.
+    :rtype: Iterator of :class:`tuple`
+        (:class:`int`, :class:`str`, :class:`str` or :obj:`None`)
+    """
+    for label in os.listdir(path):
+        label_path = os.path.join(path, label)
+
+        # skip over files because we are only looking for directories.
+        if os.path.isfile(label_path):
+            continue
+
+        # run over all the vertice id's that we can find
+        # and loading the properties if found.
+        for each in os.listdir(label_path):
+            try:
+                ident = int(each)
+            except ValueError:
+                logging.error(
+                    "%r is not a expected vertex id number, skipping",
+                    each
+                )
+                continue
+
+            propfile = os.path.join(
+                label_path,
+                str(ident),
+                "properties.json"
+            )
+
+            yield ident, label, propfile if os.path.exists(propfile) else None
+
+
 class IDGenerator(object):
     """
     ID generator and tracker.
@@ -428,41 +539,17 @@ class PersistentGraph(Graph):
         :param path: Vertices Path to walk and import.
         :type path: :class:`str`
         """
-        # walk the path loading vertices that are found.
-        for label in os.listdir(path):
+        sorted_to_import = sorted(
+            _search_for_vertice_id(path),
+            key=lambda x: x[0]
+        )
 
-            label_path = os.path.join(path, label)
+        for ident, label, prop_file in sorted_to_import:
+            properties = json.load(open(prop_file)) if prop_file else {}
 
-            # skip over files because we are only looking for directories.
-            if os.path.isfile(label_path):
-                continue
-
-            # run over all the vertice id's that we can find
-            # and loading the properties if found.
-            for dirname in sorted(os.listdir(label_path)):
-                try:
-                    ident = int(dirname)
-                except ValueError:
-                    logging.error(
-                        "%r is not a expected vertex id number, skipping",
-                        dirname
-                    )
-                    continue
-
-                properties = {}
-                properties_filename = os.path.join(
-                    label_path,
-                    dirname,
-                    "properties.json"
-                )
-
-                if os.path.exists(properties_filename):
-                    with open(properties_filename) as properties_filehandle:
-                        properties = json.load(properties_filehandle)
-
-                # reset the id to the id being loaded.
-                self._id_tracker.vid = ident
-                super(PersistentGraph, self).add_vertex(label, **properties)
+            # reset the id to the id being loaded.
+            self._id_tracker.vid = ident
+            super(PersistentGraph, self).add_vertex(label, **properties)
 
     def _load_edges_from_path(self, path):
         """
@@ -485,67 +572,25 @@ class PersistentGraph(Graph):
         :raises KeyError: If the head or tail of the edge being
             imported is unknown.
         """
-        # walk the path loading edges that are found.
-        for label in os.listdir(path):
+        sorted_to_import = sorted(
+            _search_for_edge_ids(path),
+            key=lambda x: x[0]
+        )
 
-            label_path = os.path.join(path, label)
+        for ident, head_id, label, tail_id, prop_file in sorted_to_import:
+            properties = json.load(open(prop_file)) if prop_file else {}
+            head = self.get_vertex(head_id)
+            tail = self.get_vertex(tail_id)
 
-            # skip over files because we are only looking for directories.
-            if os.path.isfile(label_path):
-                continue
+            # reset the id to the id being loaded.
+            self._id_tracker.eid = ident
+            super(PersistentGraph, self).add_edge(
+                head,
+                label,
+                tail,
+                **properties
+            )
 
-            # run over all the edge id's that we can find
-            # and loading the properties if found.
-            for dirname in sorted(os.listdir(label_path)):
-                try:
-                    ident = int(dirname)
-                except ValueError:
-                    logging.error(
-                        "%r is not a expected vertex id number, skipping",
-                        dirname
-                    )
-                    continue
-
-                properties = {}
-                properties_filename = os.path.join(
-                    label_path,
-                    dirname,
-                    "properties.json"
-                )
-
-                properties = {}
-                if os.path.exists(properties_filename):
-                    with open(properties_filename) as properties_filehandle:
-                        properties = json.load(properties_filehandle)
-
-                head_id = os.listdir(
-                    os.path.join(
-                        label_path,
-                        dirname,
-                        "head"
-                    )
-                )[0]
-
-                head = self.get_vertex(int(head_id))
-
-                tail_id = os.listdir(
-                    os.path.join(
-                        label_path,
-                        dirname,
-                        "tail"
-                    )
-                )[0]
-
-                tail = self.get_vertex(int(tail_id))
-
-                # reset the id to the id being loaded.
-                self._id_tracker.eid = ident
-                super(PersistentGraph, self).add_edge(
-                    head,
-                    label,
-                    tail,
-                    **properties
-                )
 
     def _create_vertex_skel(self, path):
         """
