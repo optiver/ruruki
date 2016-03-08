@@ -549,7 +549,10 @@ class PersistentGraph(Graph):
 
             # reset the id to the id being loaded.
             self._id_tracker.vid = ident
-            super(PersistentGraph, self).add_vertex(label, **properties)
+            vertex = super(PersistentGraph, self).add_vertex(label, **properties)
+
+            # add the reference path on disk as a internal property
+            vertex.properties["_path"] = os.path.join(path, label, str(ident))
 
     def _load_edges_from_path(self, path):
         """
@@ -584,13 +587,15 @@ class PersistentGraph(Graph):
 
             # reset the id to the id being loaded.
             self._id_tracker.eid = ident
-            super(PersistentGraph, self).add_edge(
+            edge = super(PersistentGraph, self).add_edge(
                 head,
                 label,
                 tail,
                 **properties
             )
 
+            # add the reference path on disk as a internal property
+            edge.properties["_path"] = os.path.join(path, label, str(ident))
 
     def _create_vertex_skel(self, path):
         """

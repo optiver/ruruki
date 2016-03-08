@@ -963,6 +963,12 @@ class TestPersistentGraph(unittest2.TestCase):
 
     def test_import_with_vertices_missing_properties_file(self):
         path = create_graph_mock_path()
+        vpath = os.path.join(
+            path,
+            "vertices",
+            "person",
+            "0",
+        )
         os.remove(
             os.path.join(
                 path,
@@ -974,7 +980,7 @@ class TestPersistentGraph(unittest2.TestCase):
         )
         graph = PersistentGraph(path)
         vertex = graph.get_vertex(0)
-        self.assertDictEqual(vertex.properties, {})
+        self.assertDictEqual(vertex.properties, {"_path": vpath})
 
     def test_import_from_path_missing_vertices_directory(self):
         path = tempfile.mkdtemp()
@@ -1021,7 +1027,10 @@ class TestPersistentGraph(unittest2.TestCase):
                 "metadata": {},
                 "head_id": 0,
                 "tail_id": 1,
-                "properties": {"since": "school"},
+                "properties": {
+                    "_path": os.path.join(graph.edges_path, "knows", "0"),
+                    "since": "school",
+                },
             }
         )
 
@@ -1062,7 +1071,10 @@ class TestPersistentGraph(unittest2.TestCase):
         self.assertEqual(len(graph.edges), 1)
         self.assertEqual(marko_josh.head, marko)
         self.assertEqual(marko_josh.tail, josh)
-        self.assertDictEqual(marko_josh.properties, {})
+        self.assertDictEqual(
+            marko_josh.properties,
+            {"_path": os.path.join(graph.edges_path, "knows", "0")},
+        )
 
     def test_import_from_path_loaded_edges_unknown_vertex(self):
         path = create_graph_mock_path()
@@ -1099,11 +1111,23 @@ class TestPersistentGraph(unittest2.TestCase):
 
         # test marko was imported and has id 0
         marko = graph.get_vertex(0)
-        self.assertDictEqual(marko.properties, {"name": "Marko"})
+        self.assertDictEqual(
+            marko.properties,
+            {
+                "_path": os.path.join(graph.vertices_path, "person", "0"),
+                "name": "Marko"
+            }
+        )
 
         # test josh was imported and has id 1
         josh = graph.get_vertex(1)
-        self.assertDictEqual(josh.properties, {"name": "Josh"})
+        self.assertDictEqual(
+            josh.properties,
+            {
+                "_path": os.path.join(graph.vertices_path, "person", "1"),
+                "name": "Josh"
+            }
+        )
 
         # check that the next vertex has an id of 3
         spot = graph.add_vertex("dog", name="Spot")
