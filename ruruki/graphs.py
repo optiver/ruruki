@@ -496,6 +496,7 @@ class PersistentGraph(Graph):
                     "Could not find the directory {0!r}".format(path)
                 )
 
+        logging.info("Loading graph data from %r", self.path)
         check_path_exists(self.path)
 
         # Check that the required paths exist
@@ -507,6 +508,7 @@ class PersistentGraph(Graph):
         self._load_vconstraints_from_path(self.vertices_constraints_path)
         self._load_vertices_from_path(self.vertices_path)
         self._load_edges_from_path(self.edges_path)
+        logging.info("Completed %r graph import", self.path)
 
     def _load_vconstraints_from_path(self, path):
         """
@@ -515,6 +517,7 @@ class PersistentGraph(Graph):
         :param path: Vertices constraints file to open, parse and import.
         :type path: :class:`str`
         """
+        logging.info("Loading vertices constraints %r", path)
         with open(path) as vconstraints_fh:
             for each in json.load(vconstraints_fh):
                 self.add_vertex_constraint(each["label"], each["key"])
@@ -539,6 +542,7 @@ class PersistentGraph(Graph):
         :param path: Vertices Path to walk and import.
         :type path: :class:`str`
         """
+        logging.info("Loading vertices from %r", path)
         sorted_to_import = sorted(
             _search_for_vertice_id(path),
             key=lambda x: x[0]
@@ -575,6 +579,7 @@ class PersistentGraph(Graph):
         :raises KeyError: If the head or tail of the edge being
             imported is unknown.
         """
+        logging.info("Loading edges from %r", path)
         sorted_to_import = sorted(
             _search_for_edge_ids(path),
             key=lambda x: x[0]
@@ -715,9 +720,9 @@ class PersistentGraph(Graph):
             )
 
     def remove_edge(self, edge):
-        shutil.rmtree(edge.properties["_path"])
         super(PersistentGraph, self).remove_edge(edge)
+        shutil.rmtree(edge.properties["_path"])
 
     def remove_vertex(self, vertex):
-        shutil.rmtree(vertex.properties["_path"])
         super(PersistentGraph, self).remove_vertex(vertex)
+        shutil.rmtree(vertex.properties["_path"])
