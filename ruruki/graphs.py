@@ -442,9 +442,9 @@ class PersistentGraph(Graph):
                        |_0
                          |_ properties.json (file)
                          |_ head
-                         |   |_ ../../../vertices/0 (symlik)
+                         |   |_ ../../../vertices/0 (symlink)
                          |_ tail
-                             |_ ../../../vertices/1 (symlik)
+                             |_ ../../../vertices/1 (symlink)
 
     :param path: Path to ruruki graph data on disk. If :obj:`None`, then
         a temporary path will be created, else passing in an empty ``path``
@@ -584,9 +584,9 @@ class PersistentGraph(Graph):
                           |_0
                             |_ properties.json (file)
                             |_ head
-                            |   |_ ../../../vertices/0 (symlik)
+                            |   |_ ../../../vertices/0 (symlink)
                             |_ tail
-                                |_ ../../../vertices/1 (symlik)
+                                |_ ../../../vertices/1 (symlink)
 
         :param path: Edges Path to walk and import.
         :type path: :class:`str`
