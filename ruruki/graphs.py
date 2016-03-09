@@ -545,11 +545,11 @@ class PersistentGraph(Graph):
             path
                |_ vertices
                     |_ constraints.json (file)
-                    |_ label
+                    |_ labelA
                     |     |_ 0
                     |        |_ properties.json (file)
                     |
-                    |_ label
+                    |_ labelB
                          |_ 1
                             |_ properties.json (file)
 
