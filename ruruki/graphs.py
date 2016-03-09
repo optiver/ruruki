@@ -93,7 +93,7 @@ def _search_for_edge_ids(path):
                 head_id,
                 label,
                 tail_id,
-                propfile if os.path.exists(propfile) else None
+                propfile if os.path.isfile(propfile) else None
             )
 
 
@@ -134,7 +134,7 @@ def _search_for_vertex_id(path):
                 "properties.json"
             )
 
-            yield ident, label, propfile if os.path.exists(propfile) else None
+            yield ident, label, propfile if os.path.isfile(propfile) else None
 
 
 class IDGenerator(object):
