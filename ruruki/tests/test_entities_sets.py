@@ -554,7 +554,7 @@ class TestEndsWithFiltering(FilteringBase):
                 surname__iendswith="s",
                 age=30,
             ).sorted(),
-            [self.marko, self.john],
+            sorted([self.marko, self.john]),
         )
 
     def test_incase_filter_with_label_not_all_props_match(self):
