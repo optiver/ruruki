@@ -447,8 +447,9 @@ class PersistentGraph(Graph):
                              |_ 1 -> ../../../vertices/1 (symlink)
 
     :param path: Path to ruruki graph data on disk. If :obj:`None`, then
-        a temporary path will be created, else passing in an empty ``path``
-        will result in the creation of the graph data in the provided path.
+        a temporary path will be created, else passing in a path to an
+        empty directory will result in the creation of the graph data
+        in the provided path.
     :param auto_create: If True, then missing ``vertices`` or ``edges``
         directories will be created.
     :type auto_create: :class:`bool`
