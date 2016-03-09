@@ -1,6 +1,7 @@
 """
 Entities
 """
+import logging
 from ruruki import interfaces
 
 
@@ -445,6 +446,9 @@ class EntitySet(interfaces.IEntitySet):
         collection = self._prop_reference[entity.label]
         for key in entity.properties.iterkeys():
             if key not in collection:
+                logging.warn(
+                    "No such property %r indexed, nothing to remove", key
+                )
                 continue
             collection[key].discard(entity)
 
