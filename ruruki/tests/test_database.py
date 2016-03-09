@@ -1086,7 +1086,6 @@ class TestPersistentGraph(unittest2.TestCase):
             "head",
             "0"
         )
-        print old
         new = os.path.join(
             path,
             "edges",
@@ -1102,6 +1101,52 @@ class TestPersistentGraph(unittest2.TestCase):
             PersistentGraph,
             path
         )
+
+    def test_import_from_path_loaded_edges_head_vertex_not_a_int(self):
+        path = create_graph_mock_path()
+        old = os.path.join(
+            path,
+            "edges",
+            "knows",
+            "0",
+            "head",
+            "0"
+        )
+        new = os.path.join(
+            path,
+            "edges",
+            "knows",
+            "0",
+            "head",
+            "non-int"
+        )
+        os.rename(old, new)
+
+        graph = PersistentGraph(path)
+        self.assertEqual(len(graph.edges), 0)
+
+    def test_import_from_path_loaded_edges_tail_vertex_not_a_int(self):
+        path = create_graph_mock_path()
+        old = os.path.join(
+            path,
+            "edges",
+            "knows",
+            "0",
+            "tail",
+            "1"
+        )
+        new = os.path.join(
+            path,
+            "edges",
+            "knows",
+            "0",
+            "tail",
+            "non-int"
+        )
+        os.rename(old, new)
+
+        graph = PersistentGraph(path)
+        self.assertEqual(len(graph.edges), 0)
 
     def test_import_from_path_loaded_vertices(self):
         path = create_graph_mock_path()

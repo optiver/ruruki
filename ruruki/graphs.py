@@ -43,7 +43,7 @@ def _search_for_edge_ids(path):
                 ident = int(each)
             except ValueError:
                 logging.error(
-                    "%r is not a expected edge id number, skipping",
+                    "%r is not a expected edge id number, skipping edge import",
                     each
                 )
                 continue
@@ -54,31 +54,45 @@ def _search_for_edge_ids(path):
                 "properties.json"
             )
 
-            head_id = int(
-                os.listdir(
-                    os.path.join(
-                        label_path,
-                        each,
-                        "head"
-                    )
-                )[0]
-            )
+            try:
+                head_id = int(
+                    os.listdir(
+                        os.path.join(
+                            label_path,
+                            each,
+                            "head"
+                        )
+                    )[0]
+                )
+            except ValueError:
+                logging.error(
+                    "%r is not a expected head id number, skipping edge import",
+                    each
+                )
+                continue
 
-            tail_id = int(
-                os.listdir(
-                    os.path.join(
-                        label_path,
-                        each,
-                        "tail"
-                    )
-                )[0]
-            )
+            try:
+                tail_id = int(
+                    os.listdir(
+                        os.path.join(
+                            label_path,
+                            each,
+                            "tail"
+                        )
+                    )[0]
+                )
+            except ValueError:
+                logging.error(
+                    "%r is not a expected tail id number, skipping edge import",
+                    each
+                )
+                continue
 
             yield (
                 ident,
-                int(head_id),
+                head_id,
                 label,
-                int(tail_id),
+                tail_id,
                 propfile if os.path.exists(propfile) else None
             )
 
