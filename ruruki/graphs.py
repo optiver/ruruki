@@ -83,7 +83,7 @@ def _search_for_edge_ids(path):
             )
 
 
-def _search_for_vertice_id(path):
+def _search_for_vertex_id(path):
     """
     Internal helper function to search for vertices identity numbers
     based in the directories.
@@ -544,7 +544,7 @@ class PersistentGraph(Graph):
         """
         logging.info("Loading vertices from %r", path)
         sorted_to_import = sorted(
-            _search_for_vertice_id(path),
+            _search_for_vertex_id(path),
             key=lambda x: x[0]
         )
 
