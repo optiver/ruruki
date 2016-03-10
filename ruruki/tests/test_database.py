@@ -895,7 +895,7 @@ class TestPersistentGraph(unittest2.TestCase):
     def test_import_from_empty_path_without_auto_create(self):
         path = tempfile.mkdtemp()
         self.assertRaises(
-            EnvironmentError,
+            IOError,
             PersistentGraph,
             path,
             auto_create=False
@@ -911,7 +911,7 @@ class TestPersistentGraph(unittest2.TestCase):
         )
 
         self.assertRaises(
-            EnvironmentError,
+            OSError,
             PersistentGraph,
             path,
             auto_create=True
@@ -986,7 +986,7 @@ class TestPersistentGraph(unittest2.TestCase):
         path = tempfile.mkdtemp()
         os.makedirs(os.path.join(path, "edges"))
         self.assertRaises(
-            EnvironmentError,
+            IOError,
             PersistentGraph,
             path
         )
@@ -996,7 +996,7 @@ class TestPersistentGraph(unittest2.TestCase):
         os.makedirs(os.path.join(path, "vertices"))
         os.makedirs(os.path.join(path, "edges"))
         self.assertRaises(
-            EnvironmentError,
+            IOError,
             PersistentGraph,
             path
         )
@@ -1008,7 +1008,7 @@ class TestPersistentGraph(unittest2.TestCase):
         fh.write("{}")
         fh.close()
         self.assertRaises(
-            EnvironmentError,
+            OSError,
             PersistentGraph,
             path
         )

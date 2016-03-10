@@ -1,7 +1,6 @@
 """
 Entities
 """
-import logging
 from ruruki import interfaces
 
 
@@ -165,6 +164,18 @@ class Vertex(interfaces.IVertex, Entity):
         }
 
 
+class PersistentVertex(Vertex):
+    """
+    Persistent Vertex behaves exactly the same as a :class:`~.Vertex` but has
+    an additional path attribute which is the disk location.
+    """
+    __slots__ = ["path"]
+
+    def __init__(self, *args, **kwargs):
+        super(PersistentVertex, self).__init__(*args, **kwargs)
+        self.path = None
+
+
 class Edge(interfaces.IEdge, Entity):
     """
     Edge/Relationship is the representation of a relationship between two
@@ -220,6 +231,18 @@ class Edge(interfaces.IEdge, Entity):
                 self.properties, self.head.ident, self.tail.ident
             )
         )
+
+
+class PersistentEdge(Edge):
+    """
+    Persistent Edge behaves exactly the same as a :class:`~.Edge` but has an
+    additional path attribute which is the disk location.
+    """
+    __slots__ = ["path"]
+
+    def __init__(self, *args, **kwargs):
+        super(PersistentEdge, self).__init__(*args, **kwargs)
+        self.path = None
 
 
 def _split_key_into_noun_verb(key):
@@ -445,12 +468,8 @@ class EntitySet(interfaces.IEntitySet):
 
         collection = self._prop_reference[entity.label]
         for key in entity.properties.iterkeys():
-            if key not in collection:
-                logging.warn(
-                    "No such property %r indexed, nothing to remove", key
-                )
-                continue
-            collection[key].discard(entity)
+            if key in collection:
+                collection[key].discard(entity)
 
         super(EntitySet, self).remove(entity)
 
