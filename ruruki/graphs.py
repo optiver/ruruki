@@ -8,7 +8,7 @@ import os
 import shutil
 from tempfile import mkdtemp
 from ruruki import interfaces
-from ruruki.entities import Vertex, Edge
+from ruruki.entities import Vertex, Edge, PersistentVertex, PersistentEdge
 from ruruki.entities import EntitySet
 
 
@@ -177,6 +177,8 @@ class Graph(interfaces.IGraph):
     """
 
     def __init__(self):
+        self._vclass = Vertex
+        self._eclass = Edge
         self._id_tracker = IDGenerator()
         self._vconstraints = defaultdict(dict)
         self._econstraints = defaultdict()
@@ -307,7 +309,7 @@ class Graph(interfaces.IGraph):
                     tail
                 )
             )
-        edge = Edge(head, label, tail, **kwargs)
+        edge = self._eclass(head, label, tail, **kwargs)
         self._econstraints[(head, label, tail)] = edge
         self.bind_to_graph(edge)
         self.edges.add(edge)
@@ -316,7 +318,7 @@ class Graph(interfaces.IGraph):
         return edge
 
     def add_vertex(self, label=None, **kwargs):
-        vertex = Vertex(label=label, **kwargs)
+        vertex = self._vclass(label=label, **kwargs)
 
         if label in self._vconstraints:
             for key in self._vconstraints[label]:
@@ -457,6 +459,8 @@ class PersistentGraph(Graph):
     """
     def __init__(self, path=None, auto_create=False):
         super(PersistentGraph, self).__init__()
+        self._vclass = PersistentVertex
+        self._eclass = PersistentEdge
         self.path = path
 
         if path is not None:
@@ -542,9 +546,7 @@ class PersistentGraph(Graph):
             # reset the id to the id being loaded.
             self._id_tracker.vid = ident
             vertex = super(PersistentGraph, self).add_vertex(label, **properties)
-
-            # add the reference path on disk as a internal property
-            vertex.properties["_path"] = os.path.join(path, label, str(ident))
+            vertex.path = os.path.join(path, label, str(ident))
 
     def _load_edges_from_path(self, path):
         """
@@ -588,7 +590,7 @@ class PersistentGraph(Graph):
             )
 
             # add the reference path on disk as a internal property
-            edge.properties["_path"] = os.path.join(path, label, str(ident))
+            edge.path = os.path.join(path, label, str(ident))
 
     def _create_vertex_skel(self, path):
         """
@@ -635,11 +637,14 @@ class PersistentGraph(Graph):
 
     def add_vertex(self, label=None, **kwargs):
         vertex = super(PersistentGraph, self).add_vertex(label, **kwargs)
-        vertex_path = os.path.join(self.vertices_path, label, str(vertex.ident))
-        os.makedirs(vertex_path)
-        os.makedirs(os.path.join(vertex_path, "in-edges"))
-        os.makedirs(os.path.join(vertex_path, "out-edges"))
-        vertex.set_property(_path=vertex_path)
+        vertex.path = os.path.join(self.vertices_path, label, str(vertex.ident))
+        os.makedirs(vertex.path)
+        os.makedirs(os.path.join(vertex.path, "in-edges"))
+        os.makedirs(os.path.join(vertex.path, "out-edges"))
+
+        with open(os.path.join(vertex.path, "properties.json"), "w") as fh:
+            json.dump(vertex.properties, fh)
+
         return vertex
 
     def add_edge(self, head, label, tail, **kwargs):
@@ -647,39 +652,33 @@ class PersistentGraph(Graph):
             head, label, tail, **kwargs
         )
 
-        edge_path = os.path.join(self.edges_path, label, str(edge.ident))
-        head_path = os.path.join(edge_path, "head")
-        tail_path = os.path.join(edge_path, "tail")
+        edge.path = os.path.join(self.edges_path, label, str(edge.ident))
+        head_path = os.path.join(edge.path, "head")
+        tail_path = os.path.join(edge.path, "tail")
 
-        os.makedirs(edge_path)
+        os.makedirs(edge.path)
         os.makedirs(head_path)
         os.makedirs(tail_path)
 
-        edge.set_property(_path=edge_path)
+        with open(os.path.join(edge.path, "properties.json"), "w") as fh:
+            json.dump(edge.properties, fh)
+
+        os.symlink(head.path, os.path.join(head_path, str(head.ident)))
+        os.symlink(tail.path, os.path.join(tail_path, str(tail.ident)))
 
         os.symlink(
-            head.properties["_path"],
-            os.path.join(head_path, str(head.ident))
-        )
-
-        os.symlink(
-            tail.properties["_path"],
-            os.path.join(tail_path, str(tail.ident))
-        )
-
-        os.symlink(
-            edge_path,
+            edge.path,
             os.path.join(
-                head.properties["_path"],
+                head.path,
                 "out-edges",
                 str(edge.ident)
             )
         )
 
         os.symlink(
-            edge_path,
+            edge.path,
             os.path.join(
-                tail.properties["_path"],
+                tail.path,
                 "in-edges",
                 str(edge.ident)
             )
@@ -692,7 +691,7 @@ class PersistentGraph(Graph):
 
         # Update the properties to the properties file
         properties_file = os.path.join(
-            entity.properties["_path"],
+            entity.path,
             "properties.json"
         )
 
@@ -709,8 +708,8 @@ class PersistentGraph(Graph):
 
     def remove_edge(self, edge):
         super(PersistentGraph, self).remove_edge(edge)
-        shutil.rmtree(edge.properties["_path"])
+        shutil.rmtree(edge.path)
 
     def remove_vertex(self, vertex):
         super(PersistentGraph, self).remove_vertex(vertex)
-        shutil.rmtree(vertex.properties["_path"])
+        shutil.rmtree(vertex.path)
