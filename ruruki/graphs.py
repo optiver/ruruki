@@ -454,8 +454,6 @@ class PersistentGraph(Graph):
         directories will be created.
     :type auto_create: :class:`bool`
     :type path: :class:`str`
-    :raises EnvironmentError: If parameter `path` is missing the required
-        files and directories to import.
     """
     def __init__(self, path=None, auto_create=False):
         super(PersistentGraph, self).__init__()
@@ -493,33 +491,8 @@ class PersistentGraph(Graph):
         """
         Scan through the given database path and load/import up all the
         relevant vertices, vertices constraints, and edges.
-
-        :raises EnvironmentError: If the path is missing or if the path
-            does not contain the required vertices and edges folders.
         """
-        def check_path_exists(path):
-            """
-            Simple internal helper function for checking the existence of
-            a path.
-
-            :param path: Path to check if it exists.
-            :type path: :class:`str`
-            :raises EnvironmentError: Is raised if the path does not exists.
-            """
-            if not os.path.exists(path):
-                raise EnvironmentError(
-                    "Could not find the directory {0!r}".format(path)
-                )
-
         logging.info("Loading graph data from %r", self.path)
-        check_path_exists(self.path)
-
-        # Check that the required paths exist
-        check_path_exists(self.vertices_path)
-        check_path_exists(self.edges_path)
-        check_path_exists(self.vertices_constraints_path)
-
-        # load all the constraint, vertices, and edges
         self._load_vconstraints_from_path(self.vertices_constraints_path)
         self._load_vertices_from_path(self.vertices_path)
         self._load_edges_from_path(self.edges_path)
