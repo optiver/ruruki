@@ -14,6 +14,7 @@ from ruruki import create_graph
 from ruruki import interfaces
 from ruruki.graphs import PersistentGraph
 from ruruki.entities import Entity, Edge, Vertex
+from ruruki.entities import PersistentVertex, PersistentEdge
 from ruruki.test_utils import base, helpers
 
 
@@ -944,15 +945,7 @@ class TestPersistentGraph(unittest2.TestCase):
         )
 
         self.assertEqual(
-            sorted(
-                os.listdir(
-                    os.path.join(
-                        graph.vertices_path,
-                        "person",
-                        str(marko.ident)
-                    )
-                )
-            ),
+            sorted(os.listdir(marko.path)),
             sorted(["in-edges", "out-edges", "properties.json"]),
         )
 
@@ -980,7 +973,7 @@ class TestPersistentGraph(unittest2.TestCase):
         )
         graph = PersistentGraph(path)
         vertex = graph.get_vertex(0)
-        self.assertDictEqual(vertex.properties, {"_path": vpath})
+        self.assertDictEqual(vertex.properties, {})
 
     def test_import_from_path_missing_vertices_directory(self):
         path = tempfile.mkdtemp()
@@ -1019,6 +1012,14 @@ class TestPersistentGraph(unittest2.TestCase):
 
         self.assertEqual(len(graph.edges), 1)
         marko_josh = graph.get_edge(0)
+
+        self.assertIsInstance(marko_josh, PersistentEdge)
+
+        self.assertEqual(
+            marko_josh.path,
+            os.path.join(graph.edges_path, "knows", "0"),
+        )
+
         self.assertDictEqual(
             marko_josh.as_dict(),
             {
@@ -1028,7 +1029,6 @@ class TestPersistentGraph(unittest2.TestCase):
                 "head_id": 0,
                 "tail_id": 1,
                 "properties": {
-                    "_path": os.path.join(graph.edges_path, "knows", "0"),
                     "since": "school",
                 },
             }
@@ -1071,10 +1071,12 @@ class TestPersistentGraph(unittest2.TestCase):
         self.assertEqual(len(graph.edges), 1)
         self.assertEqual(marko_josh.head, marko)
         self.assertEqual(marko_josh.tail, josh)
-        self.assertDictEqual(
-            marko_josh.properties,
-            {"_path": os.path.join(graph.edges_path, "knows", "0")},
+        self.assertIsInstance(marko_josh, PersistentEdge)
+        self.assertEqual(
+            marko_josh.path,
+            os.path.join(graph.edges_path, "knows", "0"),
         )
+        self.assertDictEqual(marko_josh.properties, {})
 
     def test_import_from_path_loaded_edges_unknown_vertex(self):
         path = create_graph_mock_path()
@@ -1156,20 +1158,28 @@ class TestPersistentGraph(unittest2.TestCase):
 
         # test marko was imported and has id 0
         marko = graph.get_vertex(0)
+        self.assertIsInstance(marko, PersistentVertex)
+        self.assertEqual(
+            marko.path,
+            os.path.join(graph.vertices_path, "person", "0")
+        )
         self.assertDictEqual(
             marko.properties,
             {
-                "_path": os.path.join(graph.vertices_path, "person", "0"),
                 "name": "Marko"
             }
         )
 
         # test josh was imported and has id 1
         josh = graph.get_vertex(1)
+        self.assertIsInstance(josh, PersistentVertex)
+        self.assertEqual(
+            josh.path,
+            os.path.join(graph.vertices_path, "person", "1")
+        )
         self.assertDictEqual(
             josh.properties,
             {
-                "_path": os.path.join(graph.vertices_path, "person", "1"),
                 "name": "Josh"
             }
         )
@@ -1223,28 +1233,13 @@ class TestPersistentGraph(unittest2.TestCase):
         # check in the verext folder for the property file and the
         # in/out edges folders - checking only one vertex should be enough.
         self.assertEqual(
-            sorted(
-                os.listdir(
-                    os.path.join(
-                        self.graph.vertices_path, "person", str(marko.ident)
-                    )
-                )
-            ),
+            sorted(os.listdir(marko.path)),
             sorted(["properties.json", "in-edges", "out-edges"]),
         )
 
         # check that the properties file was populated
         self.assertDictEqual(
-            json.load(
-                open(
-                    os.path.join(
-                        self.graph.vertices_path,
-                        "person",
-                        str(marko.ident),
-                        "properties.json"
-                    )
-                )
-            ),
+            json.load(open(os.path.join(str(marko.path), "properties.json"))),
             {"name": "Marko"},
         )
 
