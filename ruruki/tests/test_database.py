@@ -956,12 +956,6 @@ class TestPersistentGraph(unittest2.TestCase):
 
     def test_import_with_vertices_missing_properties_file(self):
         path = create_graph_mock_path()
-        vpath = os.path.join(
-            path,
-            "vertices",
-            "person",
-            "0",
-        )
         os.remove(
             os.path.join(
                 path,
