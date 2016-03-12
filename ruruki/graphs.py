@@ -545,8 +545,12 @@ class PersistentGraph(Graph):
 
             # reset the id to the id being loaded.
             self._id_tracker.vid = ident
-            vertex = super(PersistentGraph, self).add_vertex(label, **properties)
-            vertex.path = os.path.join(path, label, str(ident))
+            vertex = super(PersistentGraph, self).add_vertex(
+                label, **properties
+            )
+            # due to pylint bug https://github.com/PyCQA/pylint/issues/379, we
+            # need to disable assigning-non-slot errors
+            vertex.path = os.path.join(path, label, str(ident))  # pylint: disable=assigning-non-slot
 
     def _load_edges_from_path(self, path):
         """
@@ -589,8 +593,9 @@ class PersistentGraph(Graph):
                 **properties
             )
 
-            # add the reference path on disk as a internal property
-            edge.path = os.path.join(path, label, str(ident))
+            # due to pylint bug https://github.com/PyCQA/pylint/issues/379, we
+            # need to disable assigning-non-slot errors
+            edge.path = os.path.join(path, label, str(ident))  # pylint: disable=assigning-non-slot
 
     def _create_vertex_skel(self, path):
         """
@@ -637,7 +642,9 @@ class PersistentGraph(Graph):
 
     def add_vertex(self, label=None, **kwargs):
         vertex = super(PersistentGraph, self).add_vertex(label, **kwargs)
-        vertex.path = os.path.join(self.vertices_path, label, str(vertex.ident))
+        # due to pylint bug https://github.com/PyCQA/pylint/issues/379, we
+        # need to disable assigning-non-slot errors
+        vertex.path = os.path.join(self.vertices_path, label, str(vertex.ident))  # pylint: disable=assigning-non-slot
         os.makedirs(vertex.path)
         os.makedirs(os.path.join(vertex.path, "in-edges"))
         os.makedirs(os.path.join(vertex.path, "out-edges"))
@@ -652,7 +659,9 @@ class PersistentGraph(Graph):
             head, label, tail, **kwargs
         )
 
-        edge.path = os.path.join(self.edges_path, label, str(edge.ident))
+        # due to pylint bug https://github.com/PyCQA/pylint/issues/379, we
+        # need to disable assigning-non-slot errors
+        edge.path = os.path.join(self.edges_path, label, str(edge.ident))  # pylint: disable=assigning-non-slot
         head_path = os.path.join(edge.path, "head")
         tail_path = os.path.join(edge.path, "tail")
 
