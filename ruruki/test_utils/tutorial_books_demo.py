@@ -1,8 +1,8 @@
 #pylint: skip-file
-import ruruki
+from ruruki.graphs import Graph
 
 # create a empty graph
-graph = ruruki.create_graph()
+graph = Graph()
 
 
 # create some constraints to ensure uniqueness

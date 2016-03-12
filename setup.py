@@ -54,10 +54,4 @@ auto_version_setup(
         ],
     },
     install_requires=[],
-    entry_points = {
-        "ruruki.graphs": [
-            "graph = ruruki.graphs:Graph",
-            "persistent-graph = ruruki.graphs:PersistentGraph",
-        ],
-    },
 )

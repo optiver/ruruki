@@ -56,8 +56,8 @@ Creating a database
 
 .. code-block:: python
 
-    >>> from ruruki import create_graph
-    >>> graph = create_graph()
+    >>> from ruruki.graphs import Graph
+    >>> graph = Graph()
 
 * In order to use the :meth:`.IGraph.get_or_create_vertex` and
   :meth:`.IGraph.get_or_create_edge` effectively we should create some

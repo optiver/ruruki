@@ -10,9 +10,8 @@ import os
 import shutil
 import tempfile
 import unittest2
-from ruruki import create_graph
 from ruruki import interfaces
-from ruruki.graphs import PersistentGraph
+from ruruki.graphs import Graph, PersistentGraph
 from ruruki.entities import Entity, Edge, Vertex
 from ruruki.entities import PersistentVertex, PersistentEdge
 from ruruki.test_utils import base, helpers
@@ -40,7 +39,7 @@ class TestGraph(base.TestBase):
         )
 
     def test_load(self):
-        graph = create_graph()
+        graph = Graph()
         fh = helpers.get_test_dump_graph_file_handler()
         graph.load(fh)
 
@@ -665,7 +664,7 @@ class TestGraphGetOrCreateVertices(base.TestBase):
         )
 
     def test_no_constraints_filter_found_one_vertex(self):
-        graph = create_graph()
+        graph = Graph()
         graph.add_vertex("dog", name="rex")
 
         spot = graph.add_vertex("dog", name="spot")
