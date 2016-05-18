@@ -8,7 +8,7 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: vertex query string
+        Examples: query string
           | query                             | result                                                                                  |
           | ()                                | {"vertex": []}                                                                          |
           | (node)                            | {"vertex": {'alias': 'node'}}                                                           |
@@ -28,7 +28,7 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: edge body query string
+        Examples: query string
           | query                              | result                                                                                  |
           | []                                 | {}                                                                                      |
           | [r]                                | {"alias": "r"}                                                                          |
@@ -52,7 +52,7 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: edge query string
+        Examples: query string
           | query  | result                              |
           | --     | {"edge": ["-", "-"]}                |
           | -[]-   | {"edge": ["-", "-"]}                |
@@ -66,7 +66,7 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: edge query string
+        Examples: query string
           | query                                 | result         |
           | (n:Person)                            | {"vertices": [{"alias": "n", "labels": ["Person"]}]} |
           | (n:Person),(m:Movie)                  | {"vertices": [{"alias": "n", "labels": ["Person"]}, {"alias": "m", "labels": ["Movie"]}]} |
@@ -82,37 +82,25 @@ Feature: Parser Grammer acceptance
           | (n)-[:KNOWS]->(m:Person {'name': 'Bob'}) | {"vertices": [{"alias": "n"}, {"alias": "m", "labels": ["Person"], "properties": {'name': 'Bob'}}], "edges": [{"labels": ["KNOWS"], "out": True}]} |
 
     @match_clause @clause_action
-    Scenario Outline: Parse simple match clauses
+    Scenario Outline: Parse simple match clause
         Given we have a match action grammar expression
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: match clause string
+        Examples: query string
             | query  | result                |
             | MATCH  | {"action": "match"}   |
             | Match  | {"action": "match"}   |
             | match  | {"action": "match"}   |
 
-#     @distinct_clause @clause_action
-#     Scenario Outline: Parse simple distinct clauses
-#         Given we have a distinct action grammar expression parser
-#         When we parse the string <query>
-#         Then it should transform the pyparsing result into <result>
-# 
-#         Examples: result distinct clause string
-#             | query     | result                    |
-#             | DISTINCT  | {"action": "distinct"}    |
-#             | Distinct  | {"action": "distinct"}    |
-#             | distinct  | {"action": "distinct"}    |
-#
     @as_clause @clause_action
-    Scenario Outline: Parse simple as clauses
+    Scenario Outline: Parse simple "as" clauses
         Given we have a as action grammar expression
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: match clause string
-            | query  | result                |
+        Examples: query string
+            | query  | result          |
             | AS  | {"action": "as"}   |
             | As  | {"action": "as"}   |
             | as  | {"action": "as"}   |
@@ -123,8 +111,8 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: result distinct clause string
-            | query     | result                    |
+        Examples: query string
+            | query  | result                 |
             | WHERE  | {"action": "where"}    |
             | Where  | {"action": "where"}    |
             | where  | {"action": "where"}    |
@@ -135,14 +123,14 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: result where pattern string
-            | query     | result              |
-            | WHERE m.name = 'Bob'  | {"action": "where", "alias": "m", "operation": "eq", "key": "name", "value": "Bob"}    |
-            | WHERE m.name = Bob  | {"action": "where", "alias": "m", "operation": "eq", "key": "name", "value": "Bob"}      |
-            | WHERE m.age > 32  | {"action": "where", "alias": "m", "operation": "gt", "key": "age", "value": "32"}          |
-            | WHERE m.age < 32  |  {"action": "where", "alias": "m", "operation": "lt", "key": "age", "value": "32"}         |
-            | WHERE m.age >= 32  |  {"action": "where", "alias": "m", "operation": "gte", "key": "age", "value": "32"}       |
-            | WHERE m.age <= 32  |  {"action": "where", "alias": "m", "operation": "lte", "key": "age", "value": "32"}       |
+        Examples: query string
+            | query               | result                                                                              |
+            | WHERE m.name = 'Bob'| {"action": "where", "alias": "m", "operation": "eq", "key": "name", "value": "Bob"} |
+            | WHERE m.name = Bob  | {"action": "where", "alias": "m", "operation": "eq", "key": "name", "value": "Bob"} |
+            | WHERE m.age > 32    | {"action": "where", "alias": "m", "operation": "gt", "key": "age", "value": "32"}   |
+            | WHERE m.age < 32    | {"action": "where", "alias": "m", "operation": "lt", "key": "age", "value": "32"}   |
+            | WHERE m.age >= 32   | {"action": "where", "alias": "m", "operation": "gte", "key": "age", "value": "32"}  |
+            | WHERE m.age <= 32   | {"action": "where", "alias": "m", "operation": "lte", "key": "age", "value": "32"}  |
 
     @clause @clause_action
     Scenario Outline: Parse simple clause
@@ -150,10 +138,10 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: result distinct clause string
-            | query     | result                    |
-            | MATCH (n) | {"action": "match", "vertices": [{"alias": "n"}]}       |
-            | MATCH (n)-[]-() | {"action": "match", "edges": [["-", "-"]], "vertices": [{"alias": "n"}, []]}       |
+        Examples: query string
+            | query            | result                                                                       |
+            | MATCH (n)        | {"action": "match", "vertices": [{"alias": "n"}]}                            |
+            | MATCH (n)-[]-()  | {"action": "match", "edges": [["-", "-"]], "vertices": [{"alias": "n"}, []]} |
 
     @expression @expression_atom
     Scenario Outline: Parse simple expression atom
@@ -161,19 +149,19 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: result distinct clause string
-            | query     | result                |
-            | var       | {"alias": "var"}      |
+        Examples: query string
+            | query     | result           |
+            | var       | {"alias": "var"} |
 
     @expression
-    Scenario Outline: Parse simple expression atom
+    Scenario Outline: Parse simple expression
         Given we have a expression grammar expression
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: result distinct clause string
-            | query     | result                |
-            | var       | {"alias": "var"}      |
+        Examples: query string
+            | query     | result           |
+            | var       | {"alias": "var"} |
 
     @return @return_action
     Scenario Outline: Parse simple return clauses
@@ -181,11 +169,11 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: result distinct clause string
-            | query     | result                    |
-            | RETURN     | {"action": "return"}     |
-            | Return     | {"action": "return"}     |
-            | return     | {"action": "return"}     |
+        Examples: query string
+            | query      | result               |
+            | RETURN     | {"action": "return"} |
+            | Return     | {"action": "return"} |
+            | return     | {"action": "return"} |
 
     @return @return_item
     Scenario Outline: Parse simple return_item
@@ -193,10 +181,10 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: result distinct clause string
-            | query      | result                    |
-            | node as n  | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}]}     |
-            | node       | {"return_item_grouped": [{"alias": "node"}]}     |
+        Examples: query string
+            | query      | result                                                                        |
+            | node as n  | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}]} |
+            | node       | {"return_item_grouped": [{"alias": "node"}]}                                  |
 
     @return @return_items
     Scenario Outline: Parse simple return_items
@@ -204,15 +192,15 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: result distinct clause string
-            | query      | result                    |
-            | node as n  | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}]}     |
-            | node as n, vertex as v  | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}, {"action": "as", "alias": "vertex", "as_alias": "v"}]}     |
-            | node       | {"return_item_grouped": [{"alias": "node"}]}     |
-            | node, vertex       | {"return_item_grouped": [{"alias": "node"}, {"alias": "vertex"}]}     |
-            | *       | {}     |
-            | *, node as n  | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}]}     |
-            | *, node as n, v  | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}, {"alias": "v"}]}     |
+        Examples: query string
+            | query                   | result                                                                                                                              |
+            | node as n               | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}]}                                                       |
+            | node as n, vertex as v  | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}, {"action": "as", "alias": "vertex", "as_alias": "v"}]} |
+            | node                    | {"return_item_grouped": [{"alias": "node"}]}                                                                                        |
+            | node, vertex            | {"return_item_grouped": [{"alias": "node"}, {"alias": "vertex"}]}                                                                   |
+            | *                       | {}                                                                                                                                  |
+            | *, node as n            | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}]}                                                       |
+            | *, node as n, v         | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}, {"alias": "v"}]}                                       |
 
     @return @return_body
     Scenario Outline: Parse simple return_body
@@ -220,15 +208,15 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: result distinct clause string
-            | query      | result                    |
-            | node as n  | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}]}     |
-            | node as n, vertex as v  | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}, {"action": "as", "alias": "vertex", "as_alias": "v"}]}     |
-            | node       | {"return_item_grouped": [{"alias": "node"}]}     |
-            | node, vertex       | {"return_item_grouped": [{"alias": "node"}, {"alias": "vertex"}]}     |
-            | *       | {}     |
-            | *, node as n  | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}]}     |
-            | *, node as n, v  | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}, {"alias": "v"}]}     |
+        Examples: query string
+            | query                   | result                                                                                                                              |
+            | node as n               | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}]}                                                       |
+            | node as n, vertex as v  | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}, {"action": "as", "alias": "vertex", "as_alias": "v"}]} |
+            | node                    | {"return_item_grouped": [{"alias": "node"}]}                                                                                        |
+            | node, vertex            | {"return_item_grouped": [{"alias": "node"}, {"alias": "vertex"}]}                                                                   |
+            | *                       | {}                                                                                                                                  |
+            | *, node as n            | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}]}                                                       |
+            | *, node as n, v         | {"return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}, {"alias": "v"}]}                                       |
             # |  Need to still add in the order, limit, ect.. |
 
     @patterns @match_pattern
@@ -237,16 +225,16 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: match pattern string
-            | query       | result                |
-            | MATCH (n)   | {"action": "match", "vertices": [{"alias": "n"}]}   |
-            | MATCH (n),(m)   | {"action": "match", "vertices": [{"alias": "n"}, {"alias": "m"}]}   |
-            | MATCH (n)-[:knows]->(m)   | {"action": "match", "vertices": [{"alias": "n"}, {"alias": "m"}], "edges": [{"labels": ["knows"], "out": True}]}   |
+        Examples: query string
+            | query                           | result                                                                                                                                                |
+            | MATCH (n)                       | {"action": "match", "vertices": [{"alias": "n"}]}                                                                                                     |
+            | MATCH (n),(m)                   | {"action": "match", "vertices": [{"alias": "n"}, {"alias": "m"}]}                                                                                     |
+            | MATCH (n)-[:knows]->(m)         | {"action": "match", "vertices": [{"alias": "n"}, {"alias": "m"}], "edges": [{"labels": ["knows"], "out": True}]}                                      |
             | MATCH (n) WHERE n.name = 'Bob'  | {"action": "match", "vertices": [{"alias": "n"}], "where_action": {"action": "where", "alias": "n", "operation": "eq", "key": "name", "value": "Bob"}}|
-            | MATCH (n) WHERE n.age >= 32  | {"action": "match", "vertices": [{"alias": "n"}], "where_action": {"action": "where", "alias": "n", "operation": "gte", "key": "age", "value": "32"}}|
-            | MATCH (n) WHERE n.age > 32  | {"action": "match", "vertices": [{"alias": "n"}], "where_action": {"action": "where", "alias": "n", "operation": "gt", "key": "age", "value": "32"}}|
-            | MATCH (n) WHERE n.age <= 32  | {"action": "match", "vertices": [{"alias": "n"}], "where_action": {"action": "where", "alias": "n", "operation": "lte", "key": "age", "value": "32"}}|
-            | MATCH (n) WHERE n.age < 32  | {"action": "match", "vertices": [{"alias": "n"}], "where_action": {"action": "where", "alias": "n", "operation": "lt", "key": "age", "value": "32"}}|
+            | MATCH (n) WHERE n.age >= 32     | {"action": "match", "vertices": [{"alias": "n"}], "where_action": {"action": "where", "alias": "n", "operation": "gte", "key": "age", "value": "32"}} |
+            | MATCH (n) WHERE n.age > 32      | {"action": "match", "vertices": [{"alias": "n"}], "where_action": {"action": "where", "alias": "n", "operation": "gt", "key": "age", "value": "32"}}  |
+            | MATCH (n) WHERE n.age <= 32     | {"action": "match", "vertices": [{"alias": "n"}], "where_action": {"action": "where", "alias": "n", "operation": "lte", "key": "age", "value": "32"}} |
+            | MATCH (n) WHERE n.age < 32      | {"action": "match", "vertices": [{"alias": "n"}], "where_action": {"action": "where", "alias": "n", "operation": "lt", "key": "age", "value": "32"}}  |
             | MATCH (n)-[:knows]->(m) WHERE n.age = 32   | {"action": "match", "where_action": {"action": "where", "alias": "n", "operation": "eq", "key": "age", "value": "32"}, "vertices": [{"alias": "n"}, {"alias": "m"}], "edges": [{"labels": ["knows"], "out": True}]}   |
 
     @patterns @clause
@@ -256,11 +244,11 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: edge query string
-            | query       | result                |
-            | MATCH (n)   | {"action": "match", "vertices": [{"alias": "n"}]}   |
-            | MATCH (n),(m)   | {"action": "match", "vertices": [{"alias": "n"}, {"alias": "m"}]}   |
-            | MATCH (n)-[:knows]->(m)   | {"action": "match", "vertices": [{"alias": "n"}, {"alias": "m"}], "edges": [{"labels": ["knows"], "out": True}]}   |
+        Examples: query string
+            | query                   | result                                                                                                           |
+            | MATCH (n)               | {"action": "match", "vertices": [{"alias": "n"}]}                                                                |
+            | MATCH (n),(m)           | {"action": "match", "vertices": [{"alias": "n"}, {"alias": "m"}]}                                                |
+            | MATCH (n)-[:knows]->(m) | {"action": "match", "vertices": [{"alias": "n"}, {"alias": "m"}], "edges": [{"labels": ["knows"], "out": True}]} |
 
     @patterns @return_pattern
     Scenario Outline: Parse simple return pattern
@@ -268,11 +256,11 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: edge query string
-            | query              | result                |
-            | RETURN node as n   | {"action": "return", "return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}]}   |
-            | RETURN node as n, v   | {"action": "return", "return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}, {"alias": "v"}]}   |
-            | RETURN node as n, vertex as v   | {"action": "return", "return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}, {"action": "as", "alias": "vertex", "as_alias": "v"}]}   |
+        Examples: query string
+            | query                         | result                                                                                                                                                 |
+            | RETURN node as n              | {"action": "return", "return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}]}                                                      |
+            | RETURN node as n, v           | {"action": "return", "return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}, {"alias": "v"}]}                                      |
+            | RETURN node as n, vertex as v | {"action": "return", "return_item_grouped": [{"action": "as", "alias": "node", "as_alias": "n"}, {"action": "as", "alias": "vertex", "as_alias": "v"}]}|
             # | Still need to do the distinct |
 
     @query @single_query
@@ -282,10 +270,10 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: edge query string
-            | query               | result                |
-            | MATCH (n)           | {"action": "match", "vertices": [{"alias": "n"}]}      |
-            | MATCH (n) MATCH (m) | {"action": "match", "vertices": [{"alias": "n"}, {"alias": "m"}]}      |
+        Examples: query string
+            | query               | result                                                            |
+            | MATCH (n)           | {"action": "match", "vertices": [{"alias": "n"}]}                 |
+            | MATCH (n) MATCH (m) | {"action": "match", "vertices": [{"alias": "n"}, {"alias": "m"}]} |
 
     @query @regular_query
     Scenario Outline: Parse regular query pattern
@@ -293,10 +281,10 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: edge query string
-            | query               | result                |
-            | MATCH (n)           | {"action": "match", "vertices": [{"alias": "n"}]}      |
-            | MATCH (n) MATCH (m) | {"action": "match", "vertices": [{"alias": "n"}, {"alias": "m"}]}      |
+        Examples: query string
+            | query               | result                                                            |
+            | MATCH (n)           | {"action": "match", "vertices": [{"alias": "n"}]}                 |
+            | MATCH (n) MATCH (m) | {"action": "match", "vertices": [{"alias": "n"}, {"alias": "m"}]} |
 
     @query
     Scenario Outline: Parse query pattern
@@ -304,9 +292,8 @@ Feature: Parser Grammer acceptance
         When we parse the string <query> through the parse function
         Then it should transform the parsing result into <result>
 
-        Examples: edge query string
-            | query               | result                |
-            | MATCH (n) RETURN n  | {"action": "return", "return_item_grouped": [{"alias": "n"}], "vertices": [{"alias": "n"}]}      |
-            | MATCH (n) MATCH (m) RETURN n, m  | {"action": "return", "return_item_grouped": [{"alias": "n"}, {"alias": "m"}], "vertices": [{"alias": "n"}, {"alias": "m"}]}      |
-            | MATCH (n) MATCH (m) RETURN n as node  | {"action": "return", "return_item_grouped": [{"action": "as", "alias": "n", "as_alias": "node"}], "vertices": [{"alias": "n"}, {"alias": "m"}]}      |
-
+        Examples: query string
+            | query                                | result                                                                                                                                         |
+            | MATCH (n) RETURN n                   | {"action": "return", "return_item_grouped": [{"alias": "n"}], "vertices": [{"alias": "n"}]}                                                    |
+            | MATCH (n) MATCH (m) RETURN n, m      | {"action": "return", "return_item_grouped": [{"alias": "n"}, {"alias": "m"}], "vertices": [{"alias": "n"}, {"alias": "m"}]}                    |
+            | MATCH (n) MATCH (m) RETURN n as node | {"action": "return", "return_item_grouped": [{"action": "as", "alias": "n", "as_alias": "node"}], "vertices": [{"alias": "n"}, {"alias": "m"}]}|
