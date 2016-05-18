@@ -350,18 +350,6 @@ class IGraph(object):
         """
 
     @abc.abstractmethod
-    def find(self, query):
-        """
-        Apply the supplied query returning query results.
-
-        :param query: Query that the graph will applie and return
-            results.
-        :type query: :class:`dict`
-        :returns: Results of the query applied.
-        :rtype: :class:`~.IEntitySet`
-        """
-
-    @abc.abstractmethod
     def remove_edge(self, edge):
         """
         Remove the provided edge from the graph.
