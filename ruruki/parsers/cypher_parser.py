@@ -13,11 +13,17 @@ import pyparsing as pp
 ##  COMMON PYPARSING GRAMMAR EXPRESSIONS ##
 ###########################################
 
+# abc...
 var = pp.Word(pp.alphas)
+
+# 0123...
 nums = pp.Word(pp.nums)
+
+# abc...0123...
 varnums = pp.Word(pp.alphanums)
 
 
+# =
 eq_operation = (
     pp.Word("=", exact=1).
     setResultsName("operation").
@@ -25,13 +31,14 @@ eq_operation = (
 )
 
 
+# !=
 neq_operation = (
     pp.Word("!=", exact=2).
     setResultsName("operation").
     setParseAction(lambda x: "neq")
 )
 
-
+# <
 lt_operation = (
     pp.Word("<", exact=1).
     setResultsName("operation").
@@ -39,6 +46,7 @@ lt_operation = (
 )
 
 
+# >
 gt_operation = (
     pp.Word(">", exact=1).
     setResultsName("operation").
@@ -46,6 +54,7 @@ gt_operation = (
 )
 
 
+#>=
 gte_operation = (
     pp.Word(">=", exact=2).
     setResultsName("operation").
@@ -53,6 +62,7 @@ gte_operation = (
 )
 
 
+# <=
 lte_operation = (
     pp.Word("<=", exact=2).
     setResultsName("operation").
@@ -61,7 +71,7 @@ lte_operation = (
 
 
 # 'abc123' or "abc123" or abc123
-quate_unquate_var = pp.Or(
+quote_unquote_var = pp.Or(
     [
         pp.Suppress(pp.Literal('"')) + varnums + pp.Suppress(pp.Literal('"')),
         pp.Suppress(pp.Literal("'")) + varnums + pp.Suppress(pp.Literal("'")),
@@ -78,21 +88,23 @@ quate_unquate_var = pp.Or(
 dict_literal = (
     pp.Suppress(pp.Literal("{")) +
     pp.ZeroOrMore(
-        quate_unquate_var +
+        quote_unquote_var +
         pp.Suppress(pp.Literal(":")) +
-        pp.Or(
-            [quate_unquate_var, varnums]
-        )+
+        quote_unquote_var +
         pp.Optional(pp.Suppress(pp.Literal(",")))
     ) +
     pp.Suppress(pp.Literal("}"))
-).setParseAction(lambda p: dict(zip(*[iter(p)]*2)))
+).setParseAction(
+    # convert a list into a dictionary
+    # eg: ['name', 'Bob'] -> {'name': 'Bob'}
+    lambda p: dict(zip(*[iter(p)]*2))
+)
 
 
 # One of more labels :LABEL_A or :LABEL_A:LABEL_B
 labels = pp.ZeroOrMore(
     pp.Suppress(":") +
-    pp.Word(pp.alphanums)
+    varnums
 )
 
 
@@ -133,11 +145,11 @@ vertex = pp.Group(
 edge_open_marker = pp.Suppress(pp.Literal("["))
 edge_close_marker = pp.Suppress(pp.Literal("]"))
 
-# <start int>..<end int>
+
+# *<start int>..<end int>
+# *
 # *..10
 # *1..2
-# 1..10
-# 10..100
 range_literal = (
     (
         pp.Suppress(pp.Literal("*")) ^
@@ -264,7 +276,7 @@ expression = (
 
 
 ###########################################
-##              Clueses                  ##
+##              Clauses                  ##
 ###########################################
 
 # MATCH
@@ -288,6 +300,12 @@ where = (
 
 
 # WHERE PATTERN
+# WHERE m.key = value
+# WHERE m.key != value
+# WHERE m.key > value
+# WHERE m.key >= value
+# WHERE m.key < value
+# WHERE m.key <= value
 where_pattern = (
     where +
     property_lookup +
@@ -301,13 +319,14 @@ where_pattern = (
             gte_operation,
         ]
     ) +
-    quate_unquate_var.setResultsName("value")
+    quote_unquote_var.setResultsName("value")
 )
 
 
 # MATCH PATTERN
 # MATCH (n)-[]-(m)
 # MATCH (n)-[]-(m) WHERE n.key = value
+# MATCH (n)-[]-(m)<-[]-() WHERE n.key = value
 match_pattern = (
     match_action +
     pattern +
