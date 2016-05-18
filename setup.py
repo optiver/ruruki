@@ -53,5 +53,7 @@ auto_version_setup(
             "VERSION",
         ],
     },
-    install_requires=[],
+    install_requires=[
+        "pyparsing"
+    ],
 )

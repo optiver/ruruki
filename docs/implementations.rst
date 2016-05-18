@@ -63,3 +63,11 @@ Locks
 .. autoclass:: ruruki.locks.DirectoryLock
    :members:
    :inherited-members:
+
+
+Parsers
+=======
+
+Cypher parser
+-------------
+.. autofunction:: ruruki.parsers.cypher_parser.parse
