@@ -381,6 +381,10 @@ class Graph(interfaces.IGraph):
     def get_vertices(self, label=None, **kwargs):
         return self.vertices.filter(label, **kwargs)
 
+    def find(self, query):
+        subgraph = Graph()
+        return subgraph
+
     def remove_edge(self, edge):
         edge.head.remove_edge(edge)
         edge.tail.remove_edge(edge)
