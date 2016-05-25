@@ -260,7 +260,7 @@ class Graph(interfaces.IGraph):
         entity.graph = self
 
     def get_or_create_vertex(self, label=None, **kwargs):
-        if not label or not kwargs:
+        if not label and not kwargs:
             return None
 
         # first check constraints.
@@ -274,13 +274,13 @@ class Graph(interfaces.IGraph):
                         return vertex
 
         # no matches in constraints, so do a EntitySet filter
-        vertices = self.vertices.filter(label, **kwargs).all()
+        vertices = self.vertices.filter(label, **kwargs)
         if len(vertices) > 1:
             raise interfaces.MultipleFoundExpectedOne(
                 "Multiple vertices found when one expected."
             )
         elif len(vertices) == 1:
-            return vertices[0]
+            return vertices.all()[0]
 
         return self.add_vertex(label, **kwargs)
 
