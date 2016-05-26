@@ -43,6 +43,7 @@ Feature: Parser Grammer acceptance
           | [r {'since': 'School'}]            | {"alias": "r", "properties": {'since': 'School'}}                                       |
           | [:label {'since': 'School'}]       | {"labels": ["label"], "properties": {'since': 'School'}}                                |
           | [r:label {'since': 'School'}]      | {"alias": "r", "labels": ["label"], "properties": {'since': 'School'}}                  |
+          | [r:label {'since': 'School, blah'}]| {"alias": "r", "labels": ["label"], "properties": {'since': 'School, blah'}}            |
           | [r:label *1..2 {'since': 'School'}]| {"alias": "r", "labels": ["label"], "properties": {'since': 'School'}, "range": [1, 2]} |
           | [*1..2 {'since': 'School'}]        | {"properties": {'since': 'School'}, "range": [1, 2]}                                    |
 

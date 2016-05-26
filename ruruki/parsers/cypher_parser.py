@@ -70,11 +70,25 @@ lte_operation = (
 )
 
 
-# 'abc123' or "abc123" or abc123
+# 'abc123' or "abc123" or abc123 or abc, 123
 quote_unquote_var = pp.Or(
     [
-        pp.Suppress(pp.Literal('"')) + varnums + pp.Suppress(pp.Literal('"')),
-        pp.Suppress(pp.Literal("'")) + varnums + pp.Suppress(pp.Literal("'")),
+        (
+            pp.Suppress(pp.Literal('"')) +
+            varnums +
+            pp.ZeroOrMore(
+                pp.Suppress(pp.Word(",", exact=1)) + pp.Optional(varnums)
+            ) +
+            pp.Suppress(pp.Literal('"'))
+        ),
+        (
+            pp.Suppress(pp.Literal("'")) +
+            varnums +
+            pp.ZeroOrMore(
+                pp.Suppress(pp.Word(",", exact=1)) + pp.Optional(varnums)
+            ) +
+            pp.Suppress(pp.Literal("'"))
+        ),
         varnums,
     ]
 )
