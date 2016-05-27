@@ -2,6 +2,17 @@ from behave import given
 from ruruki.parsers import cypher_parser
 
 
+@given("we have a quoted_var grammar expression")
+def setup_quoted_var_expression(context):
+    """
+    Setup quote_unquote_var grammar expression.
+
+    :param context: Context object share between all the setups.
+    :type context: :class:`behave.runner.Context`
+    """
+    context.expr = cypher_parser.quoted_var
+
+
 @given("we have a match pattern grammar expression")
 def setup_match_pattern_expression(context):
     """

@@ -1,6 +1,19 @@
 Feature: Parser Grammer acceptance
 
-    Feature for testing that the parser can parse a Cypher query strings.
+  Feature for testing that the parser can parse a Cypher query strings.
+
+    @variable
+    Scenario Outline: Check the variable parsing expression
+        Given we have a quoted_var grammar expression
+        When we parse the string  <query> through the expression parseString
+        Then the result converted into a list should be  <result>
+
+        Examples: query string
+          | query        | result         |
+          | 'Bob Jane'   | ["Bob Jane"]   |
+          | "Bob Jane"   | ["Bob Jane"]   |
+          | 'Bob, Jane'  | ["Bob, Jane"]  |
+          | "Bob, Jane"  | ["Bob, Jane"]  |
 
     @patterns @vertex
     Scenario Outline: Parse a simple node/vertex string

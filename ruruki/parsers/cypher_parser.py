@@ -69,26 +69,20 @@ lte_operation = (
     setParseAction(lambda x: "lte")
 )
 
+# 'string'
+# "string"
+# "string, any type of string including commas"
+quoted_var = pp.Or(
+    [
+        pp.QuotedString("'"),
+        pp.QuotedString('"'),
+    ]
+)
 
 # 'abc123' or "abc123" or abc123 or abc, 123
 quote_unquote_var = pp.Or(
     [
-        (
-            pp.Suppress(pp.Literal('"')) +
-            varnums +
-            pp.ZeroOrMore(
-                pp.Suppress(pp.Word(",", exact=1)) + pp.Optional(varnums)
-            ) +
-            pp.Suppress(pp.Literal('"'))
-        ),
-        (
-            pp.Suppress(pp.Literal("'")) +
-            varnums +
-            pp.ZeroOrMore(
-                pp.Suppress(pp.Word(",", exact=1)) + pp.Optional(varnums)
-            ) +
-            pp.Suppress(pp.Literal("'"))
-        ),
+        quoted_var,
         varnums,
     ]
 )
@@ -98,6 +92,8 @@ quote_unquote_var = pp.Or(
 # {'key': 'value'}
 # {"key": "value"}
 # {'key': value}
+# {'key': "Value, value"}
+# {'key': 'Value, value'}
 # {'key', 'value', 'key', 'value', ....}
 dict_literal = (
     pp.Suppress(pp.Literal("{")) +
