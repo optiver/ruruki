@@ -1,4 +1,4 @@
-Feature: Parser Grammer acceptance
+Feature: Parser Grammar acceptance
 
   Feature for testing that the parser can parse a Cypher query strings.
 
