@@ -1,5 +1,22 @@
-from behave import given
+from behave import given, register_type
 from ruruki.parsers import cypher_parser
+
+
+def set_expression(text):
+    return getattr(cypher_parser, text)
+
+register_type(GrammarParser=set_expression)
+
+
+@given('we have a "{text:GrammarParser}" grammar expression')
+def setup_match_action_expression(context, text):
+    """
+    Setup add_operation grammar expression.
+
+    :param context: Context object share between all the setups.
+    :type context: :class:`behave.runner.Context`
+    """
+    context.expr = text
 
 
 @given("we have a match action grammar expression")

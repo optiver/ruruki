@@ -1,3 +1,4 @@
+import ast
 from assertpy import assert_that
 from behave import then, when
 from ruruki.parsers import cypher_parser
@@ -17,6 +18,17 @@ def parse_the_query_string(context, query):
     context.result = cypher_parser.parse(query, expr=context.expr)
 
 
+@when("we parse the given query pattern string through the parse function")
+def parse_the_query_string_from_parseString(context):
+    """
+    Parse the given query string.
+
+    :param context: Context object share between all the setups.
+    :type context: :class:`behave.runner.Context`
+    """
+    context.result = cypher_parser.parse(context.text, expr=context.expr)
+
+
 @when("we parse the string  {query} through the expression parseString")
 def parse_the_query_string_from_parseString(context, query):
     """
@@ -28,6 +40,20 @@ def parse_the_query_string_from_parseString(context, query):
     :type query: :class:`str`
     """
     context.result = context.expr.parseString(query)
+
+
+@then("it should transform the parsing result into dictionary result")
+def validate_result(context):
+    """
+    Validate the parsed result.
+
+    :param context: Context object share between all the setups.
+    :type context: :class:`behave.runner.Context`
+    """
+    result = ast.literal_eval(context.text)
+    assert_that(
+        context.result
+    ).is_equal_to(result)
 
 
 @then("it should transform the parsing result into {result}")
