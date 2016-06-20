@@ -323,11 +323,12 @@ edge_body = (
 
 
 
-# RelationshipPattern = (LeftArrowHead, WS, Dash, WS, [RelationshipDetail], WS, Dash, WS, RightArrowHead)
-#                    | (LeftArrowHead, WS, Dash, WS, [RelationshipDetail], WS, Dash)
-#                    | (Dash, WS, [RelationshipDetail], WS, Dash, WS, RightArrowHead)
-#                    | (Dash, WS, [RelationshipDetail], WS, Dash)
-#                    ;
+# RelationshipPattern =
+#   (LeftArrowHead, WS, Dash, WS, [RelationshipDetail], WS, Dash, WS, RightArrowHead) # pylint: disable=line-too-long
+#   | (LeftArrowHead, WS, Dash, WS, [RelationshipDetail], WS, Dash)
+#   | (Dash, WS, [RelationshipDetail], WS, Dash, WS, RightArrowHead)
+#   | (Dash, WS, [RelationshipDetail], WS, Dash)
+#   ;
 edge = pp.Group(
     pp.Or(
         [
