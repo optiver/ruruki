@@ -623,9 +623,7 @@ expression12 = (
 
 
 # Expression = Expression12 ;
-#expression << expression12
-# This is a hack till I figure out the serious performance issues with the above.
-expression = expression_atom
+expression << expression12  # pylint: disable=pointless-statement
 
 
 ###########################################
