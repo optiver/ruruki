@@ -710,13 +710,16 @@ match_pattern = pp.Group(
 
 
 
+# TODO:
+# This is a hack till I figure out the serious performance issues with the
+# above. return_item should be using expression and not expression_atom.
 
 # ReturnItem = (Expression, SP, (A,S), SP, Variable)| Expression;
 return_item = pp.Group(
     pp.Or(
         [
-            expression + as_clause + var,
-            expression,
+            expression_atom + as_clause + var,
+            expression_atom,
         ]
     )
 )("return_item")
