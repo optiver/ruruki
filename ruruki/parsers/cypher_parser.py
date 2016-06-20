@@ -287,14 +287,13 @@ range_literal = pp.Group(
 # :label
 # :label|label
 edge_label = pp.Forward()
-edge_label_definition = (
+edge_label << (
     labels +
     pp.ZeroOrMore(
         pp.Suppress(pp.Literal("|")) +
         edge_label
     )
 )
-edge_label << edge_label_definition
 
 
 # []
