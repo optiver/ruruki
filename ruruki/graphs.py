@@ -316,6 +316,33 @@ class Graph(interfaces.IGraph):
         head.out_edges.add(edge)
         tail.in_edges.add(edge)
         return edge
+    def append_edge(self, edge):
+        head = edge.head
+        tail = edge.tail
+
+        self.append_vertex(head)
+        self.append_vertex(tail)
+
+        if edge.is_bound():
+            if edge.graph is not self:
+                raise interfaces.DatabaseException(
+                    "Can not append edge {} which is already bound to "
+                    "anther graph instance.".format(edge)
+                 )
+            elif edge in self:
+                return edge
+
+        if edge.ident is not None:
+            raise interfaces.EntityIDError(
+                "Edge {} already has it identity number set.".format(edge)
+             )
+
+        self._econstraints[(head, edge.label, tail)] = edge
+        self.bind_to_graph(edge)
+        self.edges.add(edge)
+        head.out_edges.add(edge)
+        tail.in_edges.add(edge)
+        return edge
 
     def add_vertex(self, label=None, **kwargs):
         vertex = self._vclass(label=label, **kwargs)
@@ -324,6 +351,30 @@ class Graph(interfaces.IGraph):
             for key in self._vconstraints[label]:
                 if key in kwargs:
                     self._vconstraints[label][key].add(vertex)
+
+        self.bind_to_graph(vertex)
+        self.vertices.add(vertex)
+        return vertex
+    def append_vertex(self, vertex):
+        if vertex.is_bound():
+            if vertex.graph is not self:
+                raise interfaces.DatabaseException(
+                    "Can not append vertex {} which is already bound to "
+                    "anther graph instance.".format(vertex)
+                )
+            elif vertex in self:
+                return vertex
+
+        if vertex.ident is not None:
+            raise interfaces.EntityIDError(
+                "Vertex {} already has it identity number set.".format(vertex)
+            )
+
+
+        if vertex.label in self._vconstraints:
+            for key in self._vconstraints[vertex.label]:
+                if key in vertex.properties:
+                    self._vconstraints[vertex.label][key].add(vertex)
 
         self.bind_to_graph(vertex)
         self.vertices.add(vertex)
