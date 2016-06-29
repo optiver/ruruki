@@ -20,7 +20,12 @@ class VertexTuple(namedtuple("VertexTuple", ["label", "properties"])):
 
 
 # Exceptions
-class LockException(Exception):
+class RurukiException(Exception):
+    """
+    Ruruki base exception.
+    """
+
+class LockException(RurukiException):
     """
     Base lock exception class.
     """
@@ -38,7 +43,7 @@ class ReleaseError(LockException):
     """
 
 
-class EntityException(Exception):
+class EntityException(RurukiException):
     """
     Base container exception class.
     """
@@ -62,7 +67,7 @@ class DumplicateConstraintError(EntitySetException):
     """
 
 
-class DatabaseException(Exception):
+class DatabaseException(RurukiException):
     """
     Database Exception.
     """
@@ -100,9 +105,15 @@ class VertexError(DatabaseException):
     """
 
 
+class EntityIDError(DatabaseException):
+    """
+    Raised when there is some sort of issue regarding the identity number
+    of the entity.
+    """
+
 class VertexBoundByEdges(VertexError):
     """
-    Raise when you are trying to remove a vertex that will is bound to
+    Raised when you are trying to remove a vertex that will is bound to
     another vertex via a edge.
     """
 
