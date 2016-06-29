@@ -23,6 +23,8 @@ Visualization tool
 ==================
 See ruruki's visual graph exploration tool called [Ruruki-eye](https://github.com/optiver/ruruki-eye)
 
+![Screenshot](/RurukiEye-View.png)
+
 Demo
 ====
 To see an online demo of [ruruki-eye](https://github.com/optiver/ruruki-eye) follow the following link http://www.ruruki.com.
