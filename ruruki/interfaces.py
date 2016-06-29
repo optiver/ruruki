@@ -238,6 +238,50 @@ class IGraph(object):
         """
 
     @abc.abstractmethod
+    def append_edge(self, edge):
+        """
+        Append the edge to the graph.
+
+        .. note::
+
+            The edge that you are appending to the graph should have
+            :py:attr:`~.IEntity.ident` set to :obj:`None`, so that the
+            :class:`~.IGraph` can manage what the identity number should be.
+
+        :param edge: Edge that should be appended to the graph.
+        :type edge: :class:`~.IEdge`
+        :raises ConstraintViolation: Raised if you are trying to create a
+            duplicate edge between head and tail.
+        :raises EntityIDError: If the edge already has a identity number set.
+        :raises DatabaseError: If the edge already is already bound to
+            anther :class:`~.IGraph`.
+        :returns: The edge after it has been appended to the graph.
+        :rtype: :class:`~.IEdge`
+        """
+
+    @abc.abstractmethod
+    def append_vertex(self, vertex):
+        """
+        Append the vertex to the graph.
+
+        .. note::
+
+            The vertex that you are appending to the graph should have
+            :py:attr:`~.IEntity.ident` set to :obj:`None`, so that the
+            :class:`~.IGraph` can manage what the identity number should be.
+
+        :param vertex: Vertex that should be appended to the graph.
+        :type vertex: :class:`~.IVertex`
+        :raises ConstraintViolation: Raised if you are appending a new vertex
+            that violates a constraint.
+        :raises EntityIDError: If the vertex already has a identity number set.
+        :raises DatabaseError: If the vertex already is already bound to
+            anther :class:`~.IGraph`.
+        :returns: The vertex after it has been appended to the graph.
+        :rtype: :class:`~.IVertex`
+        """
+
+    @abc.abstractmethod
     def add_edge(self, head, label, tail, **kwargs):
         """
         Add an directed edge to the graph.
