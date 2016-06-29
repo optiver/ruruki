@@ -228,6 +228,80 @@ class TestGraph(base.TestBase):
             }
         )
 
+    def test_append_vertex(self):
+        node = Vertex(label="NODE")
+        self.graph.append_vertex(node)
+        self.assertEqual(node.ident, self.graph._id_tracker.vid - 1)
+        self.assertIn(node, self.graph)
+        self.assertEqual(node.is_bound(), True)
+
+    def test_append_vertex_with_ident_set(self):
+        node = Vertex(label="NODE")
+        node.ident = 0
+        self.assertRaises(
+            interfaces.EntityIDError,
+            self.graph.append_vertex,
+            node
+        )
+
+    def test_append_vertex_that_already_belongs_to_the_graph(self):
+        node = self.graph.get_vertex(0)
+        node_appended = self.graph.append_vertex(node)
+        self.assertIs(node_appended, node)
+
+    def test_append_vertex_bound_to_another_graph(self):
+        g = Graph()
+        node = g.add_vertex()
+        self.assertRaises(
+            interfaces.DatabaseException,
+            self.graph.append_vertex,
+            node
+        )
+
+    def test_append_edge(self):
+        node1 = Vertex(label="NODE")
+        node2 = Vertex(label="NODE")
+        edge = Edge(node1, "knows", node2)
+        self.graph.append_edge(edge)
+
+        self.assertEqual(edge.ident, self.graph._id_tracker.eid - 1)
+        self.assertIn(edge, self.graph)
+        self.assertEqual(edge.is_bound(), True)
+
+    def test_append_edge_with_ident_set(self):
+        node1 = Vertex(label="NODE")
+        node2 = Vertex(label="NODE")
+        edge = Edge(node1, "knows", node2)
+        edge.ident = 0
+        self.assertRaises(
+            interfaces.DatabaseException,
+            self.graph.append_edge,
+            edge
+        )
+
+    def test_append_edge_that_already_belongs_to_the_graph(self):
+        edge = self.graph.get_edge(0)
+        edge_appended = self.graph.append_edge(edge)
+        self.assertIs(edge_appended, edge)
+
+    def test_append_edge_bound_to_another_graph(self):
+        g = Graph()
+        node1 = g.add_vertex(label="NODE")
+        node2 = g.add_vertex(label="NODE")
+        edge = g.add_edge(node1, "knows", node2)
+
+        # hack for testing only
+        node1.ident = None
+        node2.ident = None
+        node1.graph = None
+        node2.graph = None
+
+        self.assertRaises(
+            interfaces.DatabaseException,
+            self.graph.append_edge,
+            edge
+        )
+
     def test_add_vertex(self):
         node = self.graph.add_vertex(label="NODE")
         self.assertEqual(node.label, "NODE")
