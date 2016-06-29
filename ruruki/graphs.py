@@ -299,23 +299,6 @@ class Graph(interfaces.IGraph):
             return indexed_edge
         return self.add_edge(head, label, tail, **kwargs)
 
-    def add_edge(self, head, label, tail, **kwargs):
-        if (head, label, tail) in self._econstraints:
-            raise interfaces.ConstraintViolation(
-                "Duplicate {0!r} edges between head {1!r} and tail {2!r} "
-                "is not allowed".format(
-                    label,
-                    head,
-                    tail
-                )
-            )
-        edge = self._eclass(head, label, tail, **kwargs)
-        self._econstraints[(head, label, tail)] = edge
-        self.bind_to_graph(edge)
-        self.edges.add(edge)
-        head.out_edges.add(edge)
-        tail.in_edges.add(edge)
-        return edge
     def append_edge(self, edge):
         head = edge.head
         tail = edge.tail
@@ -328,15 +311,16 @@ class Graph(interfaces.IGraph):
                 raise interfaces.DatabaseException(
                     "Can not append edge {} which is already bound to "
                     "anther graph instance.".format(edge)
-                 )
+                )
             elif edge in self:
                 return edge
 
         if edge.ident is not None:
             raise interfaces.EntityIDError(
                 "Edge {} already has it identity number set.".format(edge)
-             )
+            )
 
+        self._constraint_violated(edge)
         self._econstraints[(head, edge.label, tail)] = edge
         self.bind_to_graph(edge)
         self.edges.add(edge)
@@ -344,17 +328,6 @@ class Graph(interfaces.IGraph):
         tail.in_edges.add(edge)
         return edge
 
-    def add_vertex(self, label=None, **kwargs):
-        vertex = self._vclass(label=label, **kwargs)
-
-        if label in self._vconstraints:
-            for key in self._vconstraints[label]:
-                if key in kwargs:
-                    self._vconstraints[label][key].add(vertex)
-
-        self.bind_to_graph(vertex)
-        self.vertices.add(vertex)
-        return vertex
     def append_vertex(self, vertex):
         if vertex.is_bound():
             if vertex.graph is not self:
@@ -371,6 +344,7 @@ class Graph(interfaces.IGraph):
             )
 
 
+        self._constraint_violated(vertex)
         if vertex.label in self._vconstraints:
             for key in self._vconstraints[vertex.label]:
                 if key in vertex.properties:
@@ -380,25 +354,58 @@ class Graph(interfaces.IGraph):
         self.vertices.add(vertex)
         return vertex
 
-    def set_property(self, entity, **kwargs):
-        if entity not in self:
-            raise interfaces.UnknownEntityError(
-                "Unknown entity {0!r}".format(entity)
-            )
+    def add_edge(self, head, label, tail, **kwargs):
+        edge = self._eclass(head, label, tail, **kwargs)
+        return self.append_edge(edge)
 
+    def add_vertex(self, label=None, **kwargs):
+        vertex = self._vclass(label=label, **kwargs)
+        return self.append_vertex(vertex)
+
+    def _constraint_violated(self, entity):
+        """
+        Check if the given entity violates any of the constraints.
+
+        :param entity: Entity that you are checking for constraint violations.
+        :type entity: :class:`~.IVertex` or :class:`~.IEdge`
+        :raises ConstraintViolation: Raised if you a constraint violation has
+            been found.
+        """
         if isinstance(entity, interfaces.IVertex):
             key_index = self._vconstraints.get(entity.label, {})
-            for key, value in kwargs.items():
+            for key, value in entity.properties.items():
                 if key not in key_index:
                     continue
                 for indexed_entity in key_index[key]:
                     if indexed_entity != entity:
                         if indexed_entity.properties[key] == value:
                             raise interfaces.ConstraintViolation(
-                                "Constraint violation with {0}".format(
-                                    entity
+                                "{!r} violated constraint {!r}".format(
+                                    entity, key
                                 )
                             )
+
+
+        if isinstance(entity, interfaces.IEdge):
+            if (entity.head, entity.label, entity.tail) in self._econstraints:
+                raise interfaces.ConstraintViolation(
+                    "Duplicate {0!r} edges between head {1!r} and tail {2!r} "
+                    "is not allowed".format(
+                        entity.label,
+                        entity.head,
+                        entity.tail,
+                    )
+                )
+
+    def set_property(self, entity, **kwargs):
+        if entity not in self:
+            raise interfaces.UnknownEntityError(
+                "Unknown entity {0!r}".format(entity)
+            )
+
+        self._constraint_violated(entity)
+
+        if isinstance(entity, interfaces.IVertex):
             self.vertices.update_index(entity, **kwargs)
 
         if isinstance(entity, interfaces.IEdge):
