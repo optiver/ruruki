@@ -316,6 +316,8 @@ class IGraph(object):
         :param kwargs: Property key and values to set on the new created
             vertex.
         :type kwargs: :class:`str`, value.
+        :raises ConstraintViolation: Raised if you are adding a new vertex
+            that violates a constraint.
         :returns: Added vertex.
         :rtype: :class:`~.IVertex`
         """
