@@ -388,6 +388,395 @@ Feature: Parser Pattern Grammar acceptance
     }
     """
 
+  @patterns @property_compare
+  Scenario: Parse a property compare pattern query string
+    Given we have a "property_compare" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n.name = 'Bob'
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      'operation': 'eq',
+      'key': {
+        'alias': 'n',
+        'key': 'name'
+      },
+      'value': 'Bob'
+    }
+    """
+
+  @patterns @property_compare
+  Scenario: Parse a property compare pattern query string
+    Given we have a "property_compare" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n.name != 'Bob'
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      'operation': 'neq',
+      'key': {
+        'alias': 'n',
+        'key': 'name'
+      },
+      'value': 'Bob'
+    }
+    """
+
+  @patterns @property_compare
+  Scenario: Parse a property compare pattern query string
+    Given we have a "property_compare" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n.name < 'Bob'
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      'operation': 'lt',
+      'key': {
+        'alias': 'n',
+        'key': 'name'
+      },
+      'value': 'Bob'
+    }
+    """
+
+  @patterns @property_compare
+  Scenario: Parse a property compare pattern query string
+    Given we have a "property_compare" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n.name <= 'Bob'
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      'operation': 'lte',
+      'key': {
+        'alias': 'n',
+        'key': 'name'
+      },
+      'value': 'Bob'
+    }
+    """
+
+  @patterns @property_compare
+  Scenario: Parse a property compare pattern query string
+    Given we have a "property_compare" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n.name > 'Bob'
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      'operation': 'gt',
+      'key': {
+        'alias': 'n',
+        'key': 'name'
+      },
+      'value': 'Bob'
+    }
+    """
+
+  @patterns @property_compare
+  Scenario: Parse a property compare pattern query string
+    Given we have a "property_compare" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n.name >= 'Bob'
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      'operation': 'gte',
+      'key': {
+        'alias': 'n',
+        'key': 'name'
+      },
+      'value': 'Bob'
+    }
+    """
+
+  @patterns @property_compare
+  Scenario: Parse a property compare pattern query string
+    Given we have a "property_compare" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n.name =~ 'Bob\d+'
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      'operation': '=~',
+      'key': {
+        'alias': 'n',
+        'key': 'name'
+      },
+      'value': 'Bob\d+'
+    }
+    """
+
+  @patterns @property_compare
+  Scenario: Parse a property compare pattern query string
+    Given we have a "property_compare" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n["name"] = 'Bob'
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      'operation': 'eq',
+      'key': {
+        'alias': 'n',
+        'key': 'name'
+      },
+      'value': 'Bob'
+    }
+    """
+
+  @patterns @expression
+  Scenario: Parse a where pattern query string
+    Given we have a "expression" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n.name = 'Bob'
+      """
+    Then it should transform the parsing result into dictionary result
+      """
+      {
+        'operation': 'eq',
+        'key': {
+          'alias': 'n',
+          'key': 'name'
+        },
+        'value': 'Bob'
+      }
+      """
+
+  @patterns @expression
+  Scenario: Parse a where pattern query string
+    Given we have a "expression" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n:Person
+      """
+    Then it should transform the parsing result into dictionary result
+      """
+      {
+        'alphas': 'n',
+        'labels': [
+          {'label': 'Person'}
+        ]
+      }
+      """
+
+  @patterns @expression
+  Scenario: Parse a where pattern query string
+    Given we have a "expression" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      exists(n.name)
+      """
+    Then it should transform the parsing result into dictionary result
+      """
+      {
+        'function': 'exists',
+        'property_lookup': {
+          'alias': 'n',
+          'key': 'name'
+        }
+      }
+      """
+
+  @patterns @where
+  Scenario: Parse a where pattern query string
+    Given we have a "where_pattern" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      WHERE NOT(n.name = 'apa' AND false)
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      NOT IMPLEMENTED
+    }
+    """
+
+  @patterns @where
+  Scenario: Parse a where pattern query string
+    Given we have a "where_pattern" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      WHERE n.name <> 'Bob'
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      NOT IMPLEMENTED
+    }
+    """
+
+  @patterns @where
+  Scenario: Parse a where pattern query string
+    Given we have a "where_pattern" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      WHERE exists(n.name)
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      NOT IMPLEMENTED
+    }
+    """
+
+  @patterns @where
+  Scenario: Parse a where pattern query string
+    Given we have a "where_pattern" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      WHERE n.number >= 1 AND n.number <= 10
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      NOT IMPLEMENTED
+    }
+    """
+
+  @patterns @where
+  Scenario: Parse a where pattern query string
+    Given we have a "where_pattern" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      WHERE 1 <= n.number <= 10
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      NOT IMPLEMENTED
+    }
+    """
+
+  @patterns @where
+  Scenario: Parse a where pattern query string
+    Given we have a "where_pattern" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      WHERE n:PERSON
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      NOT IMPLEMENTED
+    }
+    """
+
+#   @patterns @where
+#   Scenario: Parse a where pattern query string
+#     Given we have a "where_pattern" grammar expression
+#     When we parse the given query pattern string through the parse function
+#       """
+#       WHERE identifier IS NULL
+#       """
+#     Then it should transform the parsing result into dictionary result
+#     """
+#     {
+#       NOT IMPLEMENTED
+#     }
+#     """
+  @patterns @where
+  Scenario: Parse a where pattern query string
+    Given we have a "where_pattern" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      WHERE NOT exists(n.name) OR n.name = 'Bob'
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      NOT IMPLEMENTED
+    }
+    """
+
+  @patterns @where
+  Scenario: Parse a where pattern query string
+    Given we have a "where_pattern" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      WHERE n.name = 'Bob'
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      NOT IMPLEMENTED
+    }
+    """
+
+  @patterns @where
+  Scenario: Parse a where pattern query string
+    Given we have a "where_pattern" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      WHERE n["name"] = 'Bob'
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      NOT IMPLEMENTED
+    }
+    """
+
+  @patterns @where
+  Scenario: Parse a where pattern query string
+    Given we have a "where_pattern" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      WHERE n.name STARTS WITH "B" OR
+            n.name ENDS WITH "b" OR
+            n.name CONTAINS "o"
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      NOT IMPLEMENTED
+    }
+    """
+
+  @patterns @where
+  Scenario: Parse a where pattern query string
+    Given we have a "where_pattern" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      WHERE n.name =~ "Bob.*"
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      NOT IMPLEMENTED
+    }
+    """
+
+  @patterns @where
+  Scenario: Parse a where pattern query string
+    Given we have a "where_pattern" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      WHERE n.name IN ['Bob', 'Jane']
+      """
+    Then it should transform the parsing result into dictionary result
+    """
+    {
+      NOT IMPLEMENTED
+    }
+    """
+
   @patterns
   Scenario: Parse a single node/vertex pattern query string
     Given we have a "pattern" grammar expression

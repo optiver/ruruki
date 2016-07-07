@@ -73,6 +73,7 @@ Feature: Parser Grammar acceptance
         | edge_close_marker    | ] | {"close_marker": "]"}   |
         | edge_label           | :Label1:Label2 | {"labels": [{"label": "Label1"}, {"label": "Label2"}]}   |
         | property_key_name    | n.name | {"property_key_name": {"alias": "n", "key": "name"}}   |
+        | property_key_name    | n["name"] | {"property_key_name": {"alias": "n", "key": "name"}}   |
         | property_lookup      | n.name | {"property_lookup": {"alias": "n", "key": "name"}}  |
 
   @clause
