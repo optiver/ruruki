@@ -442,25 +442,59 @@ property_compare = (
     quoted_var("value")
 )
 
-expression = (
-    pp.Or(
-        [
-            # exists(n.property)
+expression_pattern = pp.Or(
+    [
+        # exists(n.property)
+        (
+            pp.CaselessKeyword("exists")("function") +
+            pp.Suppress(pp.Word("(", exact=1)) +
+            property_lookup +
+            pp.Suppress(pp.Word(")", exact=1))
+        ),
+
+        # n.property STARTS WITH "Tob"
+        # n.property ENDS WITH "ob"
+        # n.property CONTAINS "goodie"
+        (
+            property_lookup +
             (
-                pp.CaselessKeyword("exists")("function") +
-                pp.Suppress(pp.Word("(", exact=1)) +
-                property_lookup +
-                pp.Suppress(pp.Word(")", exact=1))
-            ),
+                starts_with("function") |
+                ends_with("function") |
+                contains("function")
+            ) +
+            quoted_var("value")
+        ),
 
-            # n:Person
-            var + labels,
+        # n:Person
+        var + labels,
 
-            # See above
-            property_compare,
-        ]
+        # See above
+        property_compare,
+
+        # variable IS NULL
+        var("variable") + is_null,
+    ]
+)
+
+expression10 = pp.Forward()
+expression10 << expression_pattern + (
+    pp.ZeroOrMore(
+        pp.Group(
+            pp.CaselessKeyword("OR") +
+            expression_pattern
+        ).setResultsName("or", listAllMatches=True)
     )
 )
+
+expression12 = pp.Forward()
+expression12 << expression10 + (
+    pp.ZeroOrMore(
+        pp.CaselessKeyword("AND")("clause") +
+        expression10
+    )
+)
+
+expression = expression12
 
 ###########################################
 ##              Clauses                  ##

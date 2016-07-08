@@ -594,6 +594,100 @@ Feature: Parser Pattern Grammar acceptance
       }
       """
 
+  @patterns @expression
+  Scenario: Parse a where pattern query string
+    Given we have a "expression" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n.property STARTS WITH "Tob"
+      """
+    Then it should transform the parsing result into dictionary result
+      """
+      {
+        'function': 'startswith',
+        'property_lookup': {
+          'alias': 'n',
+          'key': 'property'
+          },
+        'value': 'Tob'
+      }
+      """
+
+  @patterns @expression
+  Scenario: Parse a where pattern query string
+    Given we have a "expression" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n.property ENDS WITH "ob"
+      """
+    Then it should transform the parsing result into dictionary result
+      """
+      {
+        'function': 'endswith',
+        'property_lookup': {
+          'alias': 'n',
+          'key': 'property'
+          },
+        'value': 'ob'
+      }
+      """
+
+  @patterns @expression
+  Scenario: Parse a where pattern query string
+    Given we have a "expression" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      n.property CONTAINS "goodie"
+      """
+    Then it should transform the parsing result into dictionary result
+      """
+      {
+        'function': 'contains',
+        'property_lookup': {
+          'alias': 'n',
+          'key': 'property'
+          },
+        'value': 'goodie'
+      }
+      """
+
+  @patterns @expression
+  Scenario: Parse a where pattern query string
+    Given we have a "expression" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      someVariable IS NULL
+      """
+    Then it should transform the parsing result into dictionary result
+      """
+      {
+        'type_matching': 'is_null',
+        'variable': 'someVariable',
+      }
+      """
+
+  @patterns @expression
+  Scenario: Parse a where pattern query string
+    Given we have a "expression" grammar expression
+    When we parse the given query pattern string through the parse function
+      """
+      someVariable IS NULL or n.property == "Bob" or n.name == "Jen"
+      """
+    Then it should transform the parsing result into dictionary result
+      """
+      {
+        'clause': 'OR',
+        'value': 'Bob',
+        'type_matching': 'is_null',
+        'key': {
+          'alias': 'n',
+          'key': 'property'
+        },
+        'variable': 'someVariable',
+        'operation': 'neq'
+      }
+      """
+
   @patterns @where
   Scenario: Parse a where pattern query string
     Given we have a "where_pattern" grammar expression
