@@ -55,6 +55,25 @@ class Entity(interfaces.IEntity):
             "properties": self.properties,
         }
 
+    def __getattr__(self, name):
+        """
+        Try and return a property key as a attribute of the entity, else
+        fallback to attributes on the object, else raise an AttributeError.
+
+        :param name: Property key you looking for.
+        :type name: :class:`str`
+        :raises AttributeError: If there are no property keys or object
+            attributes found.
+        """
+        value = self.properties.get(name)
+        if value is None:
+            raise AttributeError(
+                "'{}' object has no attribute '{}'".format(
+                    self.__class__.__name__, name
+                )
+            )
+        return value
+
     def __str__(self):
         return "<{0}> {1}".format(
             self.__class__.__name__, self.ident
