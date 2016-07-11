@@ -101,12 +101,13 @@ class TestEntityBase(unittest2.TestCase):
             "person"
         )
 
-    def test_get_attribute(self):
+    def test_get_attribute_no_propery_or_attr(self):
         self.assertRaises(
             AttributeError,
             self.marko.__getattr__,
             "no_such_attr_or_property"
         )
+
 
 class TestVertex(base.TestBase, TestEntityBase):
     def setUp(self):
