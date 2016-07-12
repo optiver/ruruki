@@ -91,7 +91,7 @@ class TestEntityBase(unittest2.TestCase):
 
     def test_get_property_as_attribute(self):
         self.assertEqual(
-            self.marko.name,
+            self.marko.prop__name,
             "marko"
         )
 
@@ -104,8 +104,8 @@ class TestEntityBase(unittest2.TestCase):
     def test_get_attribute_no_propery_or_attr(self):
         self.assertRaises(
             AttributeError,
-            self.marko.__getattr__,
-            "no_such_attr_or_property"
+            self.marko.__getattribute__,
+            "prop__bogus"
         )
 
 
