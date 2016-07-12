@@ -13,6 +13,17 @@ class Entity(interfaces.IEntity):
 
         See :class:`~.IEntity` for doco.
 
+    .. note::
+
+        The properties can be accessed as if they are attributes
+        directly by prepending ``prop__`` to the key.
+
+        .. code-block:: python
+
+            >>> e = Entity("Entity", name="Example")
+            >>> e.prop__name
+            'Example'
+
     :param label: :class:`.IEntity` label.
     :type ident: :class:`str` or :obj:`None`
     :param kwargs: Additional properties for the :class:`.IEntity`.
@@ -55,24 +66,14 @@ class Entity(interfaces.IEntity):
             "properties": self.properties,
         }
 
-    def __getattr__(self, name):
-        """
-        Try and return a property key as a attribute of the entity, else
-        fallback to attributes on the object, else raise an AttributeError.
-
-        :param name: Property key you looking for.
-        :type name: :class:`str`
-        :raises AttributeError: If there are no property keys or object
-            attributes found.
-        """
-        value = self.properties.get(name)
-        if value is None:
-            raise AttributeError(
-                "'{}' object has no attribute '{}'".format(
-                    self.__class__.__name__, name
-                )
-            )
-        return value
+    def __getattribute__(self, name):
+        if name.startswith("prop__"):
+            _, key = name.split("prop__", 1)
+            try:
+                return self.properties[key]
+            except KeyError:
+                pass
+        return super(Entity, self).__getattribute__(name)
 
     def __str__(self):
         return "<{0}> {1}".format(
@@ -93,6 +94,17 @@ class Vertex(interfaces.IVertex, Entity):
     .. note::
 
         See :class:`~.IVertex` for doco.
+
+    .. note::
+
+        The properties can be accessed as if they are attributes
+        directly by prepending ``prop__`` to the key.
+
+        .. code-block:: python
+
+            >>> v = Vertex("Person", name="Foo")
+            >>> v.prop__name
+            'Foo'
 
     :param label: :class:`.IEntity` label.
     :type ident: :class:`str` or :obj:`None`
@@ -203,6 +215,19 @@ class Edge(interfaces.IEdge, Entity):
     .. note::
 
         See :class:`~.IEdge` for doco.
+
+    .. note::
+
+        The properties can be accessed as if they are attributes
+        directly by prepending ``prop__`` to the key.
+
+        .. code-block:: python
+
+            >>> v1 = Vertex("Person", name="Foo")
+            >>> v2 = Vertex("Person", name="Bar")
+            >>> e = Edge(v1, "knows", v2, since="school")
+            >>> e.prop__since
+            'school'
 
     :param head: Head :class:`.IVertex` of the edge.
     :type head: :class:`.IVertex`
