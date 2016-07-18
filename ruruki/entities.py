@@ -57,13 +57,21 @@ class Entity(interfaces.IEntity):
             self.graph.set_property(self, **kwargs)
         self._update_properties(kwargs)
 
-    def as_dict(self):
+    def as_dict(self, include_privates=False):
+        if include_privates is True:
+            properties = self.properties
+        else:
+            properties = {
+                key: value
+                for key, value in self.properties.iteritems()
+                if key.startswith("_") is False
+            }
+
         return {
-            "metadata": {
-            },
+            "metadata": {},
             "id": self.ident,
             "label": self.label,
-            "properties": self.properties,
+            "properties": properties,
         }
 
     def __getattribute__(self, name):
@@ -183,16 +191,15 @@ class Vertex(interfaces.IVertex, Entity):
         out_set = self.get_out_vertices(label=label, **kwargs)
         return in_set | out_set
 
-    def as_dict(self):
-        return {
-            "metadata": {
+    def as_dict(self, include_privates=False):
+        as_dict = super(Vertex, self).as_dict(include_privates)
+        as_dict["metadata"].update(
+            {
                 "in_edge_count": self.in_edge_count(),
                 "out_edge_count": self.out_edge_count(),
-            },
-            "id": self.ident,
-            "label": self.label,
-            "properties": self.properties,
-        }
+            }
+        )
+        return as_dict
 
 
 class PersistentVertex(Vertex):
@@ -251,15 +258,11 @@ class Edge(interfaces.IEdge, Entity):
     def get_out_vertex(self):
         return self.tail
 
-    def as_dict(self):
-        return {
-            "metadata": {},
-            "id": self.ident,
-            "label": self.label,
-            "head_id": self.head.ident,
-            "tail_id": self.tail.ident,
-            "properties": self.properties,
-        }
+    def as_dict(self, include_privates=False):
+        as_dict = super(Edge, self).as_dict(include_privates)
+        as_dict["head_id"] = self.head.ident
+        as_dict["tail_id"] = self.tail.ident
+        return as_dict
 
     def __str__(self):  # pragma: no cover
         return "<{0}> ident: {1} [{3}-{2}-{4}]".format(

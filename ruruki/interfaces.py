@@ -111,6 +111,7 @@ class EntityIDError(DatabaseException):
     of the entity.
     """
 
+
 class VertexBoundByEdges(VertexError):
     """
     Raised when you are trying to remove a vertex that will is bound to
@@ -484,10 +485,28 @@ class IEntity(object):
         """
 
     @abc.abstractmethod
-    def as_dict(self):
+    def as_dict(self, include_privates=False):
         """
         Return the entity as a dictionary representation.
 
+        .. code-block:: python
+
+            >>> from ruruki.entities import Entity
+            >>> e = Entity("Person")
+            >>> e.set_property(name="Bob")
+            >>> e.set_property(_private_name="Sasquatch")
+            >>> e.as_dict()
+            {'properties': {'name': 'Bob'}, \
+'label': 'Person', 'id': None, 'metadata': {}}
+
+            >>> e.as_dict(include_privates=True)
+            {'properties': {'_private_name': 'Sasquatch', 'name': 'Bob'}, \
+'label': 'Person', 'id': None, 'metadata': {}}
+
+
+        :param include_privates: True to include private property keys in the
+            dump. Private property keys are those that begin with "_".
+        :type include_privates: :class:`bool`
         :returns: The entity as a dictionary representation.
         :rtype: :class:`dict`
         """

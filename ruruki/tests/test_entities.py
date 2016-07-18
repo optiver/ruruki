@@ -89,6 +89,37 @@ class TestEntityBase(unittest2.TestCase):
             },
         )
 
+    def test_as_dict_skip_private_keys(self):
+        self.marko.set_property(_private_name="Sasquatch")
+        self.assertDictEqual(
+            self.marko.as_dict(),
+            {
+                "id": None,
+                "label": "person",
+                "properties": {
+                    "name": "marko",
+                    "age": 29,
+                },
+                "metadata": {},
+            },
+        )
+
+    def test_as_dict_include_private_keys(self):
+        self.marko.set_property(_private_name="Sasquatch")
+        self.assertDictEqual(
+            self.marko.as_dict(include_privates=True),
+            {
+                "id": None,
+                "label": "person",
+                "properties": {
+                    "name": "marko",
+                    "age": 29,
+                    "_private_name": "Sasquatch",
+                },
+                "metadata": {},
+            },
+        )
+
     def test_get_property_as_attribute(self):
         self.assertEqual(
             self.marko.prop__name,
@@ -501,6 +532,43 @@ class TestVertex(base.TestBase, TestEntityBase):
             }
         )
 
+    def test_as_dict_skip_private_keys(self):
+        self.marko.set_property(_private_name="Sasquatch")
+        self.assertDictEqual(
+            self.marko.as_dict(),
+            {
+                "id": 0,
+                "label": "person",
+                "metadata": {
+                    "in_edge_count": 0,
+                    "out_edge_count": 3,
+                },
+                "properties": {
+                    "name": "marko",
+                    "age": 29,
+                },
+            }
+        )
+
+    def test_as_dict_include_private_keys(self):
+        self.marko.set_property(_private_name="Sasquatch")
+        self.assertDictEqual(
+            self.marko.as_dict(include_privates=True),
+            {
+                "id": 0,
+                "label": "person",
+                "metadata": {
+                    "in_edge_count": 0,
+                    "out_edge_count": 3,
+                },
+                "properties": {
+                    "name": "marko",
+                    "age": 29,
+                    "_private_name": "Sasquatch",
+                },
+            }
+        )
+
 
 class TestEdge(base.TestBase, TestEntityBase):
     def setUp(self):
@@ -542,6 +610,39 @@ class TestEdge(base.TestBase, TestEntityBase):
                 "metadata": {},
                 "properties": {
                     "weight": 1,
+                },
+                "head_id": 0,
+                "tail_id": 3,
+            }
+        )
+
+    def test_as_dict_skip_private_keys(self):
+        self.marko_knows_josh.set_property(_you="can't see me")
+        self.assertDictEqual(
+            self.marko_knows_josh.as_dict(),
+            {
+                "id": 3,
+                "label": "knows",
+                "metadata": {},
+                "properties": {
+                    "weight": 1,
+                },
+                "head_id": 0,
+                "tail_id": 3,
+            }
+        )
+
+    def test_as_dict_include_private_keys(self):
+        self.marko_knows_josh.set_property(_you="can see me")
+        self.assertDictEqual(
+            self.marko_knows_josh.as_dict(include_privates=True),
+            {
+                "id": 3,
+                "label": "knows",
+                "metadata": {},
+                "properties": {
+                    "weight": 1,
+                    "_you": "can see me",
                 },
                 "head_id": 0,
                 "tail_id": 3,
