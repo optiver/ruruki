@@ -439,10 +439,15 @@ property_compare = (
             regex_operation,
         ]
     ) +
-    quoted_var("value")
+    pp.Or(
+        [
+            quoted_var("value"),
+            nums("value")
+        ]
+    )
 )
 
-expression_pattern = pp.Or(
+expression_pattern = pp.Group(pp.Or(
     [
         # exists(n.property)
         (
@@ -474,25 +479,39 @@ expression_pattern = pp.Or(
         # variable IS NULL
         var("variable") + is_null,
     ]
-)
+)).setResultsName("expression_pattern", listAllMatches=True)
 
+# n.name = 'Sponge' or n.name = 'Bob'
 expression10 = pp.Forward()
-expression10 << expression_pattern + (
+expression10 << (
+    expression_pattern +
     pp.ZeroOrMore(
+        pp.CaselessKeyword("OR") +
         pp.Group(
-            pp.CaselessKeyword("OR") +
-            expression_pattern
+        expression_pattern
         ).setResultsName("or", listAllMatches=True)
     )
 )
 
+# n.name = 'Sponge' or n.name = 'Bob'
 expression12 = pp.Forward()
-expression12 << expression10 + (
+expression12 << pp.Group(
+    expression10 +
     pp.ZeroOrMore(
-        pp.CaselessKeyword("AND")("clause") +
+        pp.CaselessKeyword("AND") +
         expression10
     )
-)
+).setResultsName("and", listAllMatches=True)
+
+# expression12 = pp.Forward()
+# expression12 << expression10 + (
+#     pp.ZeroOrMore(
+#         pp.Group(
+#             pp.CaselessKeyword("AND")("clause") +
+#             expression10
+#         ).setResultsName("and", listAllMatches=True)
+#     )
+# )
 
 expression = expression12
 
