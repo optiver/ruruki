@@ -487,15 +487,13 @@ expression10 << (
     expression_pattern +
     pp.ZeroOrMore(
         pp.CaselessKeyword("OR") +
-        pp.Group(
         expression_pattern
-        ).setResultsName("or", listAllMatches=True)
     )
-)
+).setResultsName("or", listAllMatches=True)
 
 # n.name = 'Sponge' or n.name = 'Bob'
 expression12 = pp.Forward()
-expression12 << pp.Group(
+expression12 << (
     expression10 +
     pp.ZeroOrMore(
         pp.CaselessKeyword("AND") +
