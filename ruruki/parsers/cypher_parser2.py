@@ -3,13 +3,55 @@ import parsley
 
 Parser = parsley.makeGrammar(
     r"""
+    Cypher = WS Statement:s (WS ';')? WS -> ["Cypher", s]
+
+    Statement = Query
+
+    Query = RegularQuery
+
+    RegularQuery = SingleQuery:sq (WS Union)*:u -> ["RegularQuery", sq, u]
+
+    SingleQuery = Clause:head (WS Clause)*:tail -> ["SingleQuery", [head] + tail]
+
+    Union = U N I O N SP (A L L)? SingleQuery:sq -> ["Union", sq]
+
+    Clause = Match
+           | Unwind
+           | Merge
+           | Create
+           | Set
+           | Delete
+           | Remove
+           | With
+           | Return
+
+    # TODO: Not usre if I need to handle optional !!
+    Match = (O P T I O N A L SP)? M A T C H WS Pattern:p (WS Where)?:w -> ["Match", p, w]
+
+    Unwind = U N W I N D WS Expression:ex SP A S SP Variable:v -> ["Unwind", ex, v]
+
+    Merge = M E R G E WS PatternPart:head (SP MergeAction)*:tail -> ["Merge", [head] + tail]
+
+    MergeAction = O N SP M A T C H SP Set:s -> ["MergeActionMatch", s]
+                | O N SP C R E A T E SP Set:s -> ["MergeActionCreate", s]
+
+    Create = C R E A T E WS Pattern:p -> ["Create", p]
+
+    Set = S E T SP SetItem:head (WS ',' WS SetItem)*:tail -> ["Set", [head] + tail]
+
+    SetItem = PropertyExpression:pex '=' Expression:ex -> ["SetItemPropertyExpression", pex, ex]
+            | Variable:v '=' Expression:ex -> ["SetItem", v, ex]
+            | Variable:v '+=' Expression:ex -> ["SetItem", v, ex]
+            | Variable:v NodeLabels:ex -> ["SetItem", v, ex]
+
+    Delete = (D E T A C H SP)? D E L E T E SP Expression:head (',' WS Expression )*:tail -> ["Delete", [head] + tail]
 
     Remove = R E M O V E SP RemoveItem:head (WS ',' WS RemoveItem)*:tail -> ["Remove", [head] + tail]
 
     RemoveItem = Variable:v NodeLabels:nl -> ["RemoveItemVar", v, nl]
                 | PropertyExpression:p -> ["RemoveItemPe", p]
 
-    With = W I T H (SP D I S T I N C T)?:d SP ReturnBody:rb, (Where)?:w -> ["With", d, rb, w]
+    With = W I T H (SP D I S T I N C T)?:d SP ReturnBody:rb (Where)?:w -> ["With", d, rb, w]
 
     Return = R E T U R N (SP D I S T I N C T)?:d SP ReturnBody:rb -> ["Return", d, rb]
 
@@ -41,7 +83,7 @@ Parser = parsley.makeGrammar(
 
     PatternElement = (
                         NodePattern:np
-                        (WS PatternElementChain)*:pek
+                        (WS PatternElementChain)*:pec
                     ) -> ["PatternElement", np, pec]
                     | '(' PatternElement:pe ')' -> pe
 
@@ -327,5 +369,5 @@ Parser = parsley.makeGrammar(
 )
 
 from pprint import pprint
-p = Parser('<-[s:L*..5 {name: "Foo"}]->').RelationshipPattern()
+p = Parser(' UNION CREATE (n)-[r]->(m)').Cypher()
 pprint(p)
