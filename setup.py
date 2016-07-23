@@ -54,6 +54,6 @@ auto_version_setup(
         ],
     },
     install_requires=[
-        "pyparsing"
+        "Parsley==1.3"
     ],
 )
