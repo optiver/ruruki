@@ -369,5 +369,12 @@ Parser = parsley.makeGrammar(
 )
 
 from pprint import pprint
-p = Parser(' UNION CREATE (n)-[r]->(m)').Cypher()
+p = Parser(
+      """
+MATCH (neo:Database {name:"Neo4j"})
+/* MATCH (anna:Person {name:"Anna"}) */
+/* CREATE (anna)-[:FRIEND]->(:Person:Expert {name:"Amanda"})-[:WORKED_WITH]->(neo) */
+RETURN neo
+      """
+).Cypher()
 pprint(p)
