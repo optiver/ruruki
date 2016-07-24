@@ -187,17 +187,17 @@ Parser = parsley.makeGrammar(
          | N U L L -> None
          | C O U N T '(' '*' ')' -> ["count *"]
          | MapLiteral
-    #      | ListComprehension
+         | ListComprehension
          | '[' WS Expression:head WS
             (',' WS Expression:item WS -> item
             )*:tail ']' -> [head] + tail
-    #      | ((F,I,L,T,E,R), WS, '(', WS, FilterExpression, WS, ')')
-    #      | ((E,X,T,R,A,C,T), WS, '(', WS, FilterExpression, WS, [WS, '|', Expression], ')')
-    #      | ((A,L,L), WS, '(', WS, FilterExpression, WS, ')')
-    #      | ((A,N,Y), WS, '(', WS, FilterExpression, WS, ')')
-    #      | ((N,O,N,E), WS, '(', WS, FilterExpression, WS, ')')
-    #      | ((S,I,N,G,L,E), WS, '(', WS, FilterExpression, WS, ')')
-    #      | RelationshipsPattern
+         | F I L T E R WS '(' WS FilterExpression:fex WS ')' -> fex
+         | E X T R A C T WS '(' WS FilterExpression:fex WS (WS '|' Expression)?:ex ')' -> [fex, ex]
+         | A L L WS '(' WS FilterExpression:fex WS ')' -> fex
+         | A N Y WS '(' WS FilterExpression:fex WS ')' -> fex
+         | N O N E WS '(' WS FilterExpression:fex WS ')' -> fex
+         | S I N G L E WS '(' WS FilterExpression:fex WS ')' -> fex
+         | RelationshipsPattern
          | parenthesizedExpression
          | FunctionInvocation
          | Variable
@@ -212,7 +212,9 @@ Parser = parsley.makeGrammar(
 
     parenthesizedExpression = '(' WS Expression:ex WS ')' -> ex
 
-    # FilterExpression = IdInColl, [WS, Where]
+    RelationshipsPattern = NodePattern:np (WS PatternElementChain)?:pec -> ["RelationshipsPattern", np, pec]
+
+    FilterExpression = IdInColl:i (WS Where)?:w -> ["FilterExpression", i, w]
 
     IdInColl = Variable:v SP I N SP Expression:ex -> ["IdInColl", v, ex]
 
@@ -230,7 +232,7 @@ Parser = parsley.makeGrammar(
 
     FunctionName = SymbolicName
 
-    #ListComprehension = '[', FilterExpression, [WS, '|', Expression], ']'
+    ListComprehension = '[' FilterExpression:fex (WS '|' Expression)?:ex ']' -> ["ListComprehension", fex, ex]
 
     # PropertyLookup = WS '.' WS ((PropertyKeyName ('?' | '!')) | PropertyKeyName)
     PropertyLookup = WS '.' WS PropertyKeyName:n -> ["PropertyLookup", n]
@@ -371,10 +373,10 @@ Parser = parsley.makeGrammar(
 from pprint import pprint
 p = Parser(
       """
-MATCH (neo:Database {name:"Neo4j"})
-/* MATCH (anna:Person {name:"Anna"}) */
-/* CREATE (anna)-[:FRIEND]->(:Person:Expert {name:"Amanda"})-[:WORKED_WITH]->(neo) */
-RETURN neo
+MATCH (user:User)
+WHERE user.Id = 1234
+WITH user, size((user)-[:ISFRIENDSWITH]->(:Friend)) as numberOfFriends
+RETURN userWithFriends
       """
 ).Cypher()
 pprint(p)
