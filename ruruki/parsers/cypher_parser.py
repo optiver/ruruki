@@ -1,821 +1,393 @@
-# Due to the nature of the pyparsing grammar expressions, linting is not
-# really valid, so we are disbling it for most things.
-# pylint: disable=invalid-name,expression-not-assigned
+#pylint: skip-file
 """
-Grammar expressions.
-
-See https://s3.amazonaws.com/artifacts.opencypher.org/cypher.ebnf
+https://s3.amazonaws.com/artifacts.opencypher.org/cypher.ebnf
 """
-import pyparsing as pp
+import parsley
+import collections
 
 
-###########################################
-##  COMMON PYPARSING GRAMMAR EXPRESSIONS ##
-###########################################
+nodepattern = collections.namedtuple("NodePattern", "alias labels properties")
+label = collections.namedtuple("Label", "name")
 
-# abc...
-var = pp.Word(pp.alphas)("alphas")
 
-# 0123...
-nums = pp.Word(pp.nums)("nums").setParseAction(lambda s, l, t: int(t[0]))
+Parser = parsley.makeGrammar(
+    r"""
+    Cypher = WS Statement:s (WS ';')? WS -> ["Cypher", s]
 
-# abc...0123...
-varnums = pp.Word(pp.alphanums).setResultsName("alphanums")
+    Statement = Query
 
+    Query = RegularQuery
 
-# =
-eq_operation = (
-    pp.Word("=", exact=1)("operation").setParseAction(lambda x: "eq")
-)
+    RegularQuery = SingleQuery:sq (WS Union)*:u -> ["RegularQuery", sq, u]
 
+    SingleQuery = Clause:head (WS Clause)*:tail -> ["SingleQuery", [head] + tail]
 
-# !=
-neq_operation = (
-    pp.Word("!=", exact=2)("operation").setParseAction(lambda x: "neq")
-)
+    Union = U N I O N SP (A L L)? SingleQuery:sq -> ["Union", sq]
 
-# <
-lt_operation = (
-    pp.Word("<", exact=1)("operation").setParseAction(lambda x: "lt")
-)
+    Clause = Match
+           | Unwind
+           | Merge
+           | Create
+           | Set
+           | Delete
+           | Remove
+           | With
+           | Return
 
+    # TODO: Not usre if I need to handle optional !!
+    Match = (O P T I O N A L SP)? M A T C H WS Pattern:p (WS Where)?:w -> ["Match", p, w]
 
-# >
-gt_operation = (
-    pp.Word(">", exact=1)("operation").setParseAction(lambda x: "gt")
-)
+    Unwind = U N W I N D WS Expression:ex SP A S SP Variable:v -> ["Unwind", ex, v]
 
+    Merge = M E R G E WS PatternPart:head (SP MergeAction)*:tail -> ["Merge", [head] + tail]
 
-#>=
-gte_operation = (
-    pp.Word(">=", exact=2)("operation").setParseAction(lambda x: "gte")
-)
+    MergeAction = O N SP M A T C H SP Set:s -> ["MergeActionMatch", s]
+                | O N SP C R E A T E SP Set:s -> ["MergeActionCreate", s]
 
+    Create = C R E A T E WS Pattern:p -> ["Create", p]
 
-# <=
-lte_operation = (
-    pp.Word("<=", exact=2)("operation").setParseAction(lambda x: "lte")
-)
+    Set = S E T SP SetItem:head (WS ',' WS SetItem)*:tail -> ["Set", [head] + tail]
 
+    SetItem = PropertyExpression:pex '=' Expression:ex -> ["SetItemPropertyExpression", pex, ex]
+            | Variable:v '=' Expression:ex -> ["SetItem", v, ex]
+            | Variable:v '+=' Expression:ex -> ["SetItem", v, ex]
+            | Variable:v NodeLabels:ex -> ["SetItem", v, ex]
 
-# +
-add_operation = pp.Word("+", exact=1)("operation")
+    Delete = (D E T A C H SP)? D E L E T E SP Expression:head (',' WS Expression )*:tail -> ["Delete", [head] + tail]
 
+    Remove = R E M O V E SP RemoveItem:head (WS ',' WS RemoveItem)*:tail -> ["Remove", [head] + tail]
 
-# -
-subtract_operation = pp.Word("-", exact=1)("operation")
+    RemoveItem = Variable:v NodeLabels:nl -> ["RemoveItemVar", v, nl]
+                | PropertyExpression:p -> ["RemoveItemPe", p]
 
+    With = W I T H (SP D I S T I N C T)?:d SP ReturnBody:rb (Where)?:w -> ["With", d, rb, w]
 
-# *
-multiply_operation = pp.Word("*", exact=1)("operation")
+    Return = R E T U R N (SP D I S T I N C T)?:d SP ReturnBody:rb -> ["Return", d, rb]
 
+    ReturnBody = ReturnItems:ri (SP Order)?:o (SP Skip)?:s (SP Limit)?:l -> ["ReturnBody", ri, o, s, l]
 
-# divide
-divide_operation = pp.Word("/", exact=1)("operation")
+    ReturnItems = ('*' | ReturnItem):head
+                (WS ',' WS ReturnItem )*:tail -> ["ReturnItems", [head] + tail]
 
+    ReturnItem = Expression:ex SP A S SP Variable:v -> ["ReturnItem", ex, v]
+                | Expression:ex -> ["ReturnItem", ex, None]
 
-# %
-percent_operation = pp.Word("%", exact=1)("operation")
+    Order =  O R D E R SP B Y SP SortItem:head (',' WS SortItem)*:tail -> ["Order", [head] + tail]
 
+    Skip =  S K I P SP Expression:ex -> ["Skip", ex]
 
-# ^
-bitwise_or_operation = pp.Word("^", exact=1)("operation")
+    Limit =  L I M I T SP Expression:ex -> ["Limit", ex]
 
-# =~
-regex_operation = pp.Word("=~", exact=2)("operation")
+    SortItem = Expression:ex (D E S C E N D I N G | D E S C) -> ["sort", ex, "desc"]
+             | Expression:ex (A S C E N D I N G | A S C)? -> ["sort", ex, "asc"]
 
-# with or WITH
-with_keyword = pp.CaselessKeyword("WITH")("with_keyword")
+    Where = W H E R E SP Expression:ex -> ["Where", ex]
 
+    Pattern = PatternPart:head (',' WS PatternPart)*:tail -> [head] + tail
 
-# IN or in
-in_keyword = pp.CaselessKeyword("IN")("in_keyword")
+    PatternPart = (Variable:v WS '=' WS AnonymousPatternPart:ap) -> ["PatternPart", v, ap]
+                | AnonymousPatternPart:ap -> ["PatternPart", None, ap]
 
+    AnonymousPatternPart = PatternElement
 
-# IS or is
-is_keyword = pp.CaselessKeyword("IS")("is_keyword")
+    PatternElement = (
+                        NodePattern:np
+                        (WS PatternElementChain)*:pec
+                    ) -> ["PatternElement", np, pec]
+                    | '(' PatternElement:pe ')' -> pe
 
-
-# NOT or not
-not_keyword = pp.CaselessKeyword("NOT")("not_keyword")
-
-
-# NNULL or null
-null_keyword = pp.CaselessKeyword("NULL")("null_keyword")
-
-
-# STARTS or starts
-starts_keyword = pp.CaselessKeyword("STARTS")("starts_keyword")
-
-
-# CONTAINS or contains
-contains_keyword = pp.CaselessKeyword("CONTAINS")("contains_keyword")
-
-
-# ENDS or ends
-ends_keyword = pp.CaselessKeyword("ENDS")("ends_keyword")
-
-
-# STARTS WITH
-starts_with = (
-    (starts_keyword + with_keyword)("string_matching").
-    setParseAction(lambda s: "startswith")
-)
-
-
-# ENDS WITH
-ends_with = (
-    (ends_keyword + with_keyword)("string_matching").
-    setParseAction(lambda e: "endswith")
-)
-
-# CONTAINS
-contains = (
-    contains_keyword("string_matching").
-    setParseAction(lambda c: "contains")
-)
-
-
-# IS NOT or is not
-is_not = (
-    (is_keyword + not_keyword)("string_matching").
-    setParseAction(lambda i: "is_not")
-)
-
-# IS NULL or is null
-is_null = (
-    (is_keyword + null_keyword)("type_matching").
-    setParseAction(lambda i: "is_null")
-)
-
-
-# IS NOT NULL or is not null
-is_not_null = (
-    (is_keyword + not_keyword + null_keyword)("type_matching").
-    setParseAction(lambda i: "is_not_null")
-)
-
-# True or true
-true_keyword = (
-    pp.CaselessKeyword("TRUE")("type_matching").
-    setParseAction(lambda x: True)
-)
-
-# False or false
-false_keyword = (
-    pp.CaselessKeyword("FALSE")("type_matching").
-    setParseAction(lambda x: False)
-)
-
-
-# ((C,O,U,N,T), '(', '*', ')')
-count = (
-    (
-        pp.CaselessKeyword("COUNT") +
-        pp.Suppress(pp.Word("(", exact=1)) +
-        pp.Word("*", exact=1) +
-        pp.Suppress(pp.Word(")", exact=1))
-    )("function_action").
-    setParseAction(lambda c: len)
-)
-
-# 'string'
-# "string"
-# "string, any type of string including commas"
-quoted_var = pp.Or(
-    [
-        pp.QuotedString("'"),
-        pp.QuotedString('"'),
-    ]
-)("alias")
-
-
-# 'abc123' or "abc123" or abc123 or abc, 123
-quote_unquote_var = pp.Or(
-    [
-        quoted_var,
-        varnums("alias"),
-    ]
-)("alias")
-
-# Single level dict parser, does not support nested dict expressions
-# {}
-# {'key': 'value'}
-# {"key": "value"}
-# {'key': value}
-# {'key': "Value, value"}
-# {'key': 'Value, value'}
-# {'key', 'value', 'key', 'value', ....}
-dict_literal = (
-    (
-        pp.Suppress(pp.Literal("{")) +
-        pp.ZeroOrMore(
-            quote_unquote_var +
-            pp.Suppress(pp.Literal(":")) +
-            quote_unquote_var +
-            pp.Optional(pp.Suppress(pp.Literal(",")))
-        ) +
-        pp.Suppress(pp.Literal("}"))
-    )("dict_literal")
-).setParseAction(
-    # convert a list into a dictionary
-    # eg: ['name', 'Bob'] -> {'name': 'Bob'}
-    lambda p: dict(zip(*[iter(p)]*2))
-)
-
-
-# One of more labels :LABEL_A or :LABEL_A:LABEL_B
-labels = pp.ZeroOrMore(
-    pp.Suppress(":") +
-    pp.Group(varnums("label"))
-)("labels")
-
-
-
-
-# Open and close markers ()
-vertex_open_marker = pp.Word("(", exact=1)("open_marker")
-vertex_close_marker = pp.Word(")", exact=1)("close_marker")
-edge_open_marker = pp.Word("[", exact=1)("open_marker")
-edge_close_marker = pp.Word("]", exact=1)("close_marker")
-
-
-###########################################
-## Expressions for vertices/nodes        ##
-###########################################
-
-# Full vertex expression
-# ()
-# (var)
-# (:label) or multi (:label1:label2) and so on
-# ({'key': value})
-# (var:label)
-# (var {'key': value})
-# (:label {'key': value})
-# (var:label {'key': value})
-vertex = pp.Group(
-    pp.Suppress(vertex_open_marker) +
-    pp.Optional(var("alias")) +
-    pp.Optional(labels("labels")) +
-    pp.Optional(dict_literal("properties")) +
-    pp.Suppress(vertex_close_marker)
-).setResultsName("vertex")
-
-
-###########################################
-## Expressions for edges/relationships   ##
-###########################################
-
-# *<start int>..<end int>
-# *
-# *..10
-# *1..2
-range_literal = pp.Group(
-    pp.Suppress(pp.Word("*", exact=1)) +
-    pp.Optional(
-        pp.Or(
-            [
-                pp.Word("..", exact=2) + nums("max"),
-                nums("min") + pp.Word("..", exact=2) + nums("max"),
-            ]
-        )
-    )
-)("range_literal")
-
-
-# edge label
-# :label
-# :label|label
-edge_label = pp.Forward()
-edge_label << (
-    labels +
-    pp.ZeroOrMore(
-        pp.Suppress(pp.Literal("|")) +
-        edge_label
-    )
-)
-
-
-# []
-# [e]
-# [:label] or multiple [:label1|label2]
-# [*1..2]
-# [{'key': value}]
-# [e:label]
-# [e *1..2]
-# [e:label *]
-# [e:label *1..2]
-# [e:label *1..2 {'key': value}]
-# [:label *]
-# [:label *1..2]
-# [:label {'key': value}]
-# [*1..2 {'key': value}]
-edge_body = (
-    pp.Group(
-        pp.Suppress(edge_open_marker) +
-        pp.Optional(var("alias")) +
-        pp.Optional(edge_label) +
-        pp.Optional(range_literal) +
-        pp.Optional(dict_literal) +
-        pp.Suppress(edge_close_marker)
-    )
-)("edge_body")
-
-
-
-# RelationshipPattern =
-#   (LeftArrowHead, WS, Dash, WS, [RelationshipDetail], WS, Dash, WS, RightArrowHead) # pylint: disable=line-too-long
-#   | (LeftArrowHead, WS, Dash, WS, [RelationshipDetail], WS, Dash)
-#   | (Dash, WS, [RelationshipDetail], WS, Dash, WS, RightArrowHead)
-#   | (Dash, WS, [RelationshipDetail], WS, Dash)
-#   ;
-edge = pp.Group(
-    pp.Or(
-        [
-            # <-[]->
-            (
-                pp.Word("<-", exact=2)("in").setParseAction(lambda: True) +
-                pp.Optional(edge_body) +
-                pp.Word("->", exact=2)("out").setParseAction(lambda: True)
-            ),
-
-            # <-[]-
-            (
-                pp.Word("<-", exact=2)("in").setParseAction(lambda: True) +
-                pp.Optional(edge_body) +
-                pp.Word("-", exact=1)("out").setParseAction(lambda: False)
-            ),
-
-            # -[]->
-            (
-                pp.Word("-", exact=1)("in").setParseAction(lambda: False) +
-                pp.Optional(edge_body) +
-                pp.Word("->", exact=2)("out").setParseAction(lambda: True)
-            ),
-
-            # -[]-
-            (
-                pp.Word("-", exact=1)("in").setParseAction(lambda: True) +
-                pp.Optional(edge_body) +
-                pp.Word("-", exact=1)("out").setParseAction(lambda: True)
-            ),
-        ]
-    )
-)("edge")
-
-
-
-# (n:Person)
-# (n:Person),(m:Movie)
-# (n:Person:Swedish)
-# (n:Person {'name': 'Bob'})
-# (n)-->(m)
-# (n)--(m)
-# (n:Person)-->(m)
-# (n)<-[:KNOWS]-(m)
-# (n)-[r]->(m)
-# (n)-[*1..5]->(m)
-# (n)-[:KNOWS]->(m:Person {'name': 'Bob'})
-pattern = pp.Forward()
-pattern << (
-    vertex.setResultsName("vertices", listAllMatches=True) +
-    pp.Optional(
-        edge.setResultsName("edges", listAllMatches=True) +
-        pattern
-    )
-) + pp.Optional(pp.Suppress(",") + pattern)
-
-
-# m.key
-property_key_name = pp.Group(
-    varnums("alias") +
-    pp.Suppress(pp.Literal(".")) +
-    varnums("key")
-)("property_key_name")
-
-
-property_lookup = property_key_name("property_lookup")
-
-
-###########################################
-##              Expressions              ##
-###########################################
-expression = pp.Forward()
-
-# Atom = NumberLiteral
-#      | StringLiteral
-#      | Parameter  --> not done
-#      | (T,R,U,E)
-#      | (F,A,L,S,E)
-#      | (N,U,L,L)
-#      | CaseExpression  --> not done
-#      | ((C,O,U,N,T), '(', '*', ')')
-#      | MapLiteral
-#      | ListComprehension  --> not done
-#      | ('[', WS, Expression, WS, { ',', WS, Expression, WS }, ']')
-#      | ((F,I,L,T,E,R), WS, '(', WS, FilterExpression, WS, ')')  --> not done
-#      | ((E,X,T,R,A,C,T), WS, '(', WS, FilterExpression, WS, [WS, '|', Expression], ')')  --> not done
-#      | Reduce  --> not done
-#      | ((A,L,L), WS, '(', WS, FilterExpression, WS, ')') --> not done
-#      | ((A,N,Y), WS, '(', WS, FilterExpression, WS, ')') --> not done
-#      | ((N,O,N,E), WS, '(', WS, FilterExpression, WS, ')') --> not done
-#      | ((S,I,N,G,L,E), WS, '(', WS, FilterExpression, WS, ')') --> not done
-#      | ShortestPathPattern --> not done
-#      | RelationshipsPattern --> not done
-#      | parenthesizedExpression --> not done
-#      | FunctionInvocation --> not done
-#      | Variable
-#      ;
-expression_atom = pp.Or(
-    [
-        # NULL
-        null_keyword("null"),
-
-        # TRUE
-        true_keyword,
-
-        # FALSE
-        false_keyword,
-
-        # COUNT (*)
-        count,
-
-        # 1234
-        nums,
-
-        # abcd
-        var,
-
-        # {'key': 'value'}
-        dict_literal("dict"),
-
-        # [expr]
-        # [expr, expr]
-        (
-            pp.Word("[", exact=1) +
-            expression +
-            pp.ZeroOrMore(
-                pp.Word(",", exact=1) + expression
-            ) +
-            pp.Word("]", exact=1)
-        )
-    ]
-)
-
-
-# Expression2 = Atom, { PropertyLookup | NodeLabels } ;
-expression2 = (
-    expression_atom + pp.ZeroOrMore(
-        pp.Or(
-            [
-                property_lookup,
-                labels,
-            ]
-        )
-    )
-)
-
-# Expression3 = Expression2, {
-#   (WS, '[', Expression, ']') |
-#   (WS, '[', [Expression], '..', [Expression], ']') |
-#   (((WS, '=~') | (SP, (I,N)) | (SP, (S,T,A,R,T,S), SP, (W,I,T,H)) | (SP, (E,N,D,S), SP, (W,I,T,H)) | (SP, (C,O,N,T,A,I,N,S))), WS, Expression2) |
-#   (SP, (I,S), SP, (N,U,L,L)) |
-#   (SP, (I,S), SP, (N,O,T), SP, (N,U,L,L))
-#} ;
-expression3 = (
-    expression2 +
-    pp.ZeroOrMore(
-        pp.Or(
-            [
-                #   (WS, '[', Expression, ']') |
-                pp.Word("[", exact=1) + expression + pp.Word("]", exact=1),
-
-                #   (WS, '[', [Expression], '..', [Expression], ']') |
-                (
-                    pp.Word("[", exact=1) +
+    NodePattern = '(' WS
+                 (
+                    Variable:v WS -> v
+                 )?:v
+                 (
+                     NodeLabels:nl WS -> nl
+                 )?:nl
+                 (
+                     Properties:p WS -> p
+                 )?:p
+                ')' -> nodepattern(v, nl, p)
+
+    PatternElementChain = RelationshipPattern:rp WS NodePattern:np -> ["PatternElementChain", rp, np]
+
+    RelationshipPattern = LeftArrowHead?:la WS Dash WS RelationshipDetail?:rd WS Dash WS RightArrowHead?:ra -> ["RelationshipsPattern", la, rd, ra]
+
+    RelationshipDetail = '['
+                      Variable?:v
+                      '?'?:q
+                      RelationshipTypes?:rt
+                      ('*' RangeLiteral)?:rl WS
+                      Properties?:p
+                      ']' -> ["RelationshipDetail", v, q, rt, rl, p]
+
+    Properties = MapLiteral
+               | Parameter
+
+    RelationshipTypes = ':' RelTypeName:head (WS '|' ':'? WS RelTypeName)*:tail -> ["RelationshipTypes", head] + tail
+
+    NodeLabels = NodeLabel:head (WS NodeLabel)*:tail -> [head] + tail
+
+    NodeLabel = ':' LabelName:n -> label(n)
+
+    RangeLiteral = (WS IntegerLiteral)?:start WS ('..' WS IntegerLiteral)?:stop WS -> slice(start, stop)
+
+    LabelName = SymbolicName
+
+    RelTypeName = SymbolicName
+
+    Expression = Expression12
+
+    Expression12 = Expression11:ex1
+                  (SP O R SP Expression11:ex2 -> ["or", ex2]
+                  )*:ops -> ["Expression12", ex1, ops]
+
+    Expression11 = Expression10:ex1
+                  (SP X O R SP Expression10:ex2 -> ["xor", ex2]
+                  )*:ops -> ["Expression11", ex1, ops]
+
+    Expression10 = Expression9:ex1
+                  (SP A N D SP Expression9:ex2 -> ["and", ex2]
+                  )*:ops -> ["Expression10", ex1, ops]
+
+    Expression9 = ( SP N O T SP )*:not Expression8:ex1 -> ["Expression9", "not", ex1]
+
+    Expression8 = Expression7:ex1 (WS PartialComparisonExpression)*:ops -> ["Expression8", ex1, ops]
+
+    Expression7 = Expression6:ex1
+                  (
+                    WS '+' WS Expression6:ex2 -> ["add", ex2]
+                    | WS '-' WS Expression6:ex2 -> ["sub", ex2]
+                  )*:c -> ["Expression7", ex1, c]
+
+    Expression6 = Expression5:ex1
+                  (WS '*' WS Expression5:ex2 -> ["multi", ex2]
+                  | WS '/' WS Expression5:ex2 -> ["div", ex2]
+                  | WS '%' WS Expression5:ex2 -> ["mod", ex2]
+                  )*:ops -> ["Expression6", ex1, ops]
+
+    Expression5 = Expression4:ex1
+                 (WS '^' WS Expression4:ex2 -> ["hat", ex2]
+                 )*:ops -> ["Expression5", ex1, ops]
+
+    Expression4 = (('+' | '-') WS)*:signs Expression3:value -> ["Expression4", signs, value]
+
+    Expression3 = Expression2:ex1
+                  (
+                    WS '[' Expression:prop_name ']' -> ["PropertyLookup", prop_name]
+                    | WS '[' Expression?:start '..' Expression?:end ']' -> ["slice", start, end]
+                    | (
+                        WS '=~' -> "regex"
+                        | SP I N -> "in"
+                        | SP S T A R T S SP W I T H -> "starts_with"
+                        | SP E N D S SP W I T H  -> "ends_with"
+                        | SP C O N T A I N S  -> "contains"
+                    ):operator WS Expression2:ex2 -> [operator, ex2]
+                    | SP I S SP N U L L  -> ["is_null"]
+                    | SP I S SP N O T SP N U L L -> ["is_not_null"]
+                  )*:c -> ["Expression3", ex1, c]
+
+    Expression2 = Atom:a (PropertyLookup | NodeLabels)*:c -> ["Expression2", a, c]
+
+    Atom = NumberLiteral
+         | StringLiteral
+         | Parameter
+         | T R U E -> True
+         | F A L S E -> False
+         | N U L L -> None
+         | C O U N T '(' '*' ')' -> ["count *"]
+         | MapLiteral
+         | ListComprehension
+         | '[' WS Expression:head WS
+            (',' WS Expression:item WS -> item
+            )*:tail ']' -> [head] + tail
+         | F I L T E R WS '(' WS FilterExpression:fex WS ')' -> fex
+         | E X T R A C T WS '(' WS FilterExpression:fex WS (WS '|' Expression)?:ex ')' -> [fex, ex]
+         | A L L WS '(' WS FilterExpression:fex WS ')' -> fex
+         | A N Y WS '(' WS FilterExpression:fex WS ')' -> fex
+         | N O N E WS '(' WS FilterExpression:fex WS ')' -> fex
+         | S I N G L E WS '(' WS FilterExpression:fex WS ')' -> fex
+         | RelationshipsPattern
+         | parenthesizedExpression
+         | FunctionInvocation
+         | Variable
+
+    PartialComparisonExpression = '=' WS Expression7:ex -> ["eq", ex]
+                                | '<>' WS Expression7:ex-> ["neq", ex]
+                                | '!=' WS Expression7:ex -> ["neq", ex]
+                                | '<' WS Expression7:ex -> ["lt", ex]
+                                | '>' WS Expression7:ex -> ["gt", ex]
+                                | '<=' WS Expression7:ex -> ["le", ex]
+                                | '>=' WS Expression7:ex -> ["ge", ex]
+
+    parenthesizedExpression = '(' WS Expression:ex WS ')' -> ex
+
+    RelationshipsPattern = NodePattern:np (WS PatternElementChain)?:pec -> ["RelationshipsPattern", np, pec]
+
+    FilterExpression = IdInColl:i (WS Where)?:w -> ["FilterExpression", i, w]
+
+    IdInColl = Variable:v SP I N SP Expression:ex -> ["IdInColl", v, ex]
+
+    FunctionInvocation = FunctionName:func
+                        WS '(' WS
+                        (D I S T I N C T)?:distinct
+                        (
+                            Expression:head
+                            (
+                                ',' WS Expression
+                            )*:tail -> [head] + tail
+                        | -> []
+                        ):args
+                        WS ')' -> ["call", func, distinct, args]
+
+    FunctionName = SymbolicName
+
+    ListComprehension = '[' FilterExpression:fex (WS '|' Expression)?:ex ']' -> ["ListComprehension", fex, ex]
+
+    # PropertyLookup = WS '.' WS ((PropertyKeyName ('?' | '!')) | PropertyKeyName)
+    PropertyLookup = WS '.' WS PropertyKeyName:n -> ["PropertyLookup", n]
+
+    Variable = SymbolicName
+
+    StringLiteral = '"' (~('"'|'\\') anything | EscapedChar)*:cs '"' -> "".join(cs)
+                  | "'" (~("'"|'\\') anything | EscapedChar)*:cs "'" -> "".join(cs)
+
+    EscapedChar = '\\'
+                ('\\' -> '\\'
+                | "'" -> "'"
+                | '"' -> '"'
+                | N -> '\n'
+                | R -> '\r'
+                | T -> '\t'
+                | '_' -> '_'
+                | '%' -> '%'
+                )
+
+    NumberLiteral = DoubleLiteral
+                  | IntegerLiteral
+
+    MapLiteral = '{' WS
+                 (
                     (
-                        pp.Optional(expression) +
-                        pp.Word("..", exact=2) +
-                        pp.Optional(expression)
-                    ) +
-                    pp.Word("]", exact=1)
-                ),
+                        PropertyKeyName:k WS ':' WS Expression:v -> (k, v)
+                    ):head WS
+                    (
+                        ',' WS PropertyKeyName:k WS ':' WS Expression:v WS -> (k, v)
+                    )*:tail -> [head] + tail
+                 | -> []):pairs
+                '}' -> dict(pairs)
 
-                #   (((WS, '=~') | (SP, (I,N)) | (SP, (S,T,A,R,T,S), SP, (W,I,T,H)) | (SP, (E,N,D,S), SP, (W,I,T,H)) | (SP, (C,O,N,T,A,I,N,S))), WS, Expression2) |
-                (
-                    pp.Or(
-                        [
-                            regex_operation,
-                            in_keyword,
-                            starts_with,
-                            ends_with,
-                            contains,
-                        ]
-                    ) + expression2
-                ),
+    Parameter = '{' WS (SymbolicName | DecimalInteger):p WS '}' -> ["Parameter", p]
 
-                #   (SP, (I,S), SP, (N,U,L,L)) |
-                is_null,
+    PropertyExpression = Atom:a (WS PropertyLookup)*:opts -> ["Expression", a, opts]
 
-                #   (SP, (I,S), SP, (N,O,T), SP, (N,U,L,L))
-                is_not_null,
-            ]
-        )
-    )
+    PropertyKeyName = SymbolicName
+
+    IntegerLiteral = HexInteger
+                   | OctalInteger
+                   | DecimalInteger
+
+    OctalDigit = ~('8'|'9') digit
+
+    OctalInteger = '0' <OctalDigit+>:ds -> int(ds, 8)
+
+    HexDigit = digit | A | B | C | D | E | F
+
+    HexInteger = '0' X <HexDigit+>:ds -> int(ds, 16)
+
+    DecimalInteger = ~'0' <digit+>:ds -> int(ds)
+
+    DoubleLiteral = ExponentDecimalReal
+                  | RegularDecimalReal
+
+    ExponentDecimalReal = <(DecimalInteger | RegularDecimalReal) E DecimalInteger>:ds -> float(ds)
+
+    RegularDecimalReal = <digit+ '.' digit+>:ds -> float(ds)
+
+    SymbolicName = UnescapedSymbolicName
+                 | EscapedSymbolicName
+
+    UnescapedSymbolicName = <letter ('_' | letterOrDigit)*>
+
+    EscapedSymbolicName = '`' (~'`' anything | "``" -> '`')*:cs '`' -> "".join(cs)
+
+    WS = whitespace*
+
+    SP = whitespace+
+
+    whitespace = ' '
+               | '\t'
+               | '\n'
+               | Comment
+
+    Comment = "/*" (~"*/" anything)* "*/"
+            | "//" (~('\r'|'\n') anything)* '\r'? ('\n'|end)
+
+    LeftArrowHead = '<'
+
+    RightArrowHead = '>'
+
+    Dash = '-'
+
+    A = 'A' | 'a'
+
+    B = 'B' | 'b'
+
+    C = 'C' | 'c'
+
+    D = 'D' | 'd'
+
+    E = 'E' | 'e'
+
+    F = 'F' | 'f'
+
+    G = 'G' | 'g'
+
+    H = 'H' | 'h'
+
+    I = 'I' | 'i'
+
+    K = 'K' | 'k'
+
+    L = 'L' | 'l'
+
+    M = 'M' | 'm'
+
+    N = 'N' | 'n'
+
+    O = 'O' | 'o'
+
+    P = 'P' | 'p'
+
+    R = 'R' | 'r'
+
+    S = 'S' | 's'
+
+    T = 'T' | 't'
+
+    U = 'U' | 'u'
+
+    V = 'V' | 'v'
+
+    W = 'W' | 'w'
+
+    X = 'X' | 'x'
+
+    Y = 'Y' | 'y'
+
+    Z = 'Z' | 'z'
+    """,
+    {
+        "nodepattern": nodepattern,
+        "label": label,
+    }, unwrap=False
 )
 
-# Expression4 = { ('+' | '-'), WS }, Expression3 ;
-expression4 = (
-    pp.ZeroOrMore(
-        pp.Or(
-            [
-                add_operation,
-                subtract_operation,
-            ]
-        )
-    ) + expression3
-)
-
-# Expression5 = Expression4, { WS, '^', WS, Expression4 } ;
-expression5 = (
-    expression4 + pp.ZeroOrMore(bitwise_or_operation + expression4)
-)
-
-# Expression6 = Expression5, { (WS, '*', WS, Expression5) | (WS, '/', WS, Expression5) | (WS, '%', WS, Expression5) } ;
-expression6 = (
-    expression5 + pp.ZeroOrMore(
-        pp.Or(
-            [
-                multiply_operation + expression5,
-                divide_operation + expression5,
-                percent_operation + expression5,
-            ]
-        )
-    )
-)
-
-# Expression7 = Expression6, { (WS, '+', WS, Expression6) | (WS, '-', WS, Expression6) } ;
-expression7 = (
-    expression6 + pp.ZeroOrMore(
-        pp.Or(
-            [
-                add_operation + expression6,
-                subtract_operation + expression6,
-            ]
-        )
-    )
-)
-
-# PartialComparisonExpression = ('=', WS, Expression7)
-#                             | ('<>', WS, Expression7)
-#                             | ('!=', WS, Expression7)
-#                             | ('<', WS, Expression7)
-#                             | ('>', WS, Expression7)
-#                             | ('<=', WS, Expression7)
-#                             | ('>=', WS, Expression7)
-#                             ;
-partial_comparison_expression = (
-    pp.Or(
-        [
-            eq_operation + expression7,
-            neq_operation + expression7,
-            lt_operation + expression7,
-            lte_operation + expression7,
-            gt_operation + expression7,
-            gte_operation + expression7,
-        ]
-    )
-)
-
-
-# Expression8 = Expression7, { WS, PartialComparisonExpression } ;
-expression8 = (
-    expression7 + pp.ZeroOrMore(partial_comparison_expression)
-)
-
-
-# Expression9 = { SP, (N,O,T), SP }, Expression8 ;
-expression9 = (pp.ZeroOrMore(pp.CaselessKeyword("NOT")) + expression8)
-
-
-# Expression10 = Expression9, { SP, (A,N,D), SP, Expression9 } ;
-expression10 = (
-    expression9 + pp.ZeroOrMore(
-        pp.CaselessKeyword("AND") + expression9
-    )
-)
-
-
-# Expression11 = Expression10, { SP, (X,O,R), SP, Expression10 } ;
-expression11 = (
-    expression10 + pp.ZeroOrMore(
-        pp.CaselessKeyword("XOR") + expression10
-    )
-)
-
-
-# Expression12 = Expression11, { SP, (O,R), SP, Expression11 } ;
-expression12 = (
-    expression11 + pp.ZeroOrMore(
-        pp.CaselessKeyword("OR") + expression11
-    )
-)
-
-
-# Expression = Expression12 ;
-expression << expression12  # pylint: disable=pointless-statement
-
-
-###########################################
-##              Clauses                  ##
-###########################################
-
-# MATCH
-# Match
-# match
-match_clause = pp.CaselessKeyword("MATCH")("clause")
-
-
-# WHERE
-# Where
-# where
-where_clause = pp.CaselessKeyword("WHERE")("clause")
-
-
-# AS
-# As
-# as
-as_clause = pp.CaselessKeyword("AS")("clause")
-
-
-# RETURN
-# Return
-# return
-return_clause = pp.CaselessKeyword("RETURN")("clause")
-
-
-# WHERE PATTERN
-# WHERE m.key = value
-# WHERE m.key != value
-# WHERE m.key > value
-# WHERE m.key >= value
-# WHERE m.key < value
-# WHERE m.key <= value
-where_pattern = pp.Group(
-    where_clause +
-    property_lookup +
-    pp.Or(
-        [
-            eq_operation,
-            neq_operation,
-            lt_operation,
-            lte_operation,
-            gt_operation,
-            gte_operation,
-        ]
-    ) +
-    quote_unquote_var("value")
-)("where_pattern")
-
-
-# MATCH PATTERN
-# MATCH (n)-[]-(m)
-# MATCH (n)-[]-(m) WHERE n.key = value
-# MATCH (n)-[]-(m)<-[]-() WHERE n.key = value
-match_pattern = pp.Group(
-    match_clause +
-    pattern +
-    pp.Optional(where_pattern)
-)("match_pattern")
-
-
-# DISTINCT
-# Distinct
-# distinct
-# distinct_action = (
-#     pp.CaselessKeyword("DISTINCT").
-#     setResultsName("action").
-#     setParseAction(lambda t: "distinct")
+# from pprint import pprint
+# import sys
+# q = "create (Neo:Crew {name:'Neo'}), (Morpheus:Crew {name: 'Morpheus'})"
+# print q
+# p = Parser(q)
+# pprint(p.Cypher())
+# pprint(
+#     Parser(sys.stdin.read()).Cypher()
 # )
-
-
-# UNION
-# Union
-# union
-# union_action = (
-#     pp.CaselessKeyword("UNION").
-#     setResultsName("action").
-#     setParseAction(lambda t: "union")
-# )
-
-
-
-# TODO:
-# This is a hack till I figure out the serious performance issues with the
-# above. return_item should be using expression and not expression_atom.
-
-# ReturnItem = (Expression, SP, (A,S), SP, Variable)| Expression;
-return_item = pp.Group(
-    pp.Or(
-        [
-            expression_atom + as_clause + var,
-            expression_atom,
-        ]
-    )
-)("return_item")
-
-
-# ReturnItems = ('*', { WS, ',', WS, ReturnItem })|
-#               (ReturnItem, { WS, ',', WS, ReturnItem });
-return_items = pp.Group(
-    pp.Or(
-        [
-            pp.Word("*", exact=1) +
-            pp.ZeroOrMore(
-                pp.Word(",", exact=1) + return_item
-            ),
-
-            return_item + pp.ZeroOrMore(
-                pp.Word(",", exact=1) + return_item
-            ),
-        ]
-    )
-)("return_items")
-
-
-# ReturnBody = ReturnItems, [SP, Order], [SP, Skip], [SP, Limit] ;
-return_body = (
-    return_items # +
-    # pp,Optional(
-    #     order_action | skip_action | limit_action
-    # )
-)
-
-
-# Return = ((R,E,T,U,R,N), SP, (D,I,S,T,I,N,C,T), SP, ReturnBody)|
-#          ((R,E,T,U,R,N), SP, ReturnBody);
-return_pattern = (
-    return_clause + return_body
-)("return_pattern")
-
-
-# only supporting MATCH for now but should also support CREATE in the near
-# future
-clause = (
-    match_pattern
-)("clause")
-
-
-# SingleQuery = Clause, { WS, Clause } ;
-single_query = (
-    clause +
-    pp.ZeroOrMore(clause)
-)("single_query")
-
-
-# not supporting Unions at this stage
-# Union = ((U,N,I,O,N), SP, (A,L,L), SingleQuery) | ((U,N,I,O,N), SingleQuery)
-# union = (
-#     union_action, pp.CaselessKeyword("ALL") + single_query |
-#     union_action + single_query
-# )
-
-
-# RegularQuery = SingleQuery, { WS, Union } ;
-regular_query = (
-    single_query
-    # + pp.ZeroOrMore(union)
-)("regular_query")
-
-
-# not supporting BulkImportQuery at this stage.
-# Query = RegularQuery | BulkImportQuery;
-query = (regular_query + return_pattern)("query")
-
-
-def parse(query_str, expr=query, string_end=True, enable_packrat=True):
-    """
-    Parse the given query string using the provided grammar expression.
-
-    :param query_str: Query string that you are parsing.
-    :type query_str: :class:`str`
-    :param expr: Grammar expression used for parsing the query string.
-    :type expr: :class:`pyparsing.ParserElement`
-    :param string_end: True to parsing the entire query string till the
-        very end.
-    :type string_end: :class:`bool`
-    :param enable_packrat: Packrat is a grammar traversal algorithm. It will
-        speed things up nicely. This option is not turned on by default with
-        pyparsing.
-    :type enable_packrat: :class:`bool`
-    :returns: Dictionary of parsing results extracted by each grammar
-        expression.
-    :rtype: :class:`dict`
-    """
-    if string_end is True:
-        expr = expr + pp.StringEnd()
-
-    if enable_packrat:
-        expr.enablePackrat()
-
-    return expr.parseString(query_str).asDict()
