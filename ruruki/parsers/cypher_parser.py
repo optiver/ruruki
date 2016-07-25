@@ -74,7 +74,7 @@ Parser = parsley.makeGrammar(
 
     Where = W H E R E SP Expression:ex -> ["Where", ex]
 
-    Pattern = PatternPart:head (',' PatternPart)*:tail -> [head] + tail
+    Pattern = PatternPart:head (',' WS PatternPart)*:tail -> [head] + tail
 
     PatternPart = (Variable:v WS '=' WS AnonymousPatternPart:ap) -> ["PatternPart", v, ap]
                 | AnonymousPatternPart:ap -> ["PatternPart", None, ap]
@@ -297,7 +297,7 @@ Parser = parsley.makeGrammar(
     SymbolicName = UnescapedSymbolicName
                  | EscapedSymbolicName
 
-    UnescapedSymbolicName = <letter letterOrDigit*>
+    UnescapedSymbolicName = <letter ('_' | letterOrDigit)*>
 
     EscapedSymbolicName = '`' (~'`' anything | "``" -> '`')*:cs '`' -> "".join(cs)
 
@@ -367,16 +367,16 @@ Parser = parsley.makeGrammar(
 
     Z = 'Z' | 'z'
     """,
-    {}
+    {}, unwrap=False
 )
 
 from pprint import pprint
+#p = Parser("create (Neo:Crew {name:'Neo'}), (Morpheus:Crew {name: 'Morpheus'})")
 p = Parser(
-      """
-MATCH (user:User)
-WHERE user.Id = 1234
-WITH user, size((user)-[:ISFRIENDSWITH]->(:Friend)) as numberOfFriends
-RETURN userWithFriends
-      """
-).Cypher()
-pprint(p)
+"""
+create (Neo:Crew {name:'Neo'}), (Morpheus:Crew {name: 'Morpheus'}), (Trinity:Crew {name: 'Trinity'}), (Cypher:Crew:Matrix {name: 'Cypher'}), (Smith:Matrix {name: 'Agent Smith'}), (Architect:Matrix {name:'The Architect'}),
+(Neo)-[:KNOWS]->(Morpheus), (Neo)-[:LOVES]->(Trinity), (Morpheus)-[:KNOWS]->(Trinity),
+(Morpheus)-[:KNOWS]->(Cypher), (Cypher)-[:KNOWS]->(Smith),(Smith)-[:CODED_BY]->(Architect)
+"""
+)
+pprint(p.Cypher())
