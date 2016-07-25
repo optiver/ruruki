@@ -1,3 +1,6 @@
+"""
+https://s3.amazonaws.com/artifacts.opencypher.org/cypher.ebnf
+"""
 import parsley
 import collections
 
@@ -380,7 +383,8 @@ Parser = parsley.makeGrammar(
 
 from pprint import pprint
 import sys
-#p = Parser("create (Neo:Crew {name:'Neo'}), (Morpheus:Crew {name: 'Morpheus'})")
+p = Parser("create (Neo:Crew {name:'Neo'}), (Morpheus:Crew {name: 'Morpheus'})")
+pprint(p.Cypher())
 pprint(
     Parser(sys.stdin.read()).Cypher()
 )
