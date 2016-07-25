@@ -381,10 +381,12 @@ Parser = parsley.makeGrammar(
     }, unwrap=False
 )
 
-from pprint import pprint
-import sys
-p = Parser("create (Neo:Crew {name:'Neo'}), (Morpheus:Crew {name: 'Morpheus'})")
-pprint(p.Cypher())
-pprint(
-    Parser(sys.stdin.read()).Cypher()
-)
+# from pprint import pprint
+# import sys
+# q = "create (Neo:Crew {name:'Neo'}), (Morpheus:Crew {name: 'Morpheus'})"
+# print q
+# p = Parser(q)
+# pprint(p.Cypher())
+# pprint(
+#     Parser(sys.stdin.read()).Cypher()
+# )
