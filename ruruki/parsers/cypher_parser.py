@@ -1,3 +1,4 @@
+#pylint: skip-file
 """
 https://s3.amazonaws.com/artifacts.opencypher.org/cypher.ebnf
 """
