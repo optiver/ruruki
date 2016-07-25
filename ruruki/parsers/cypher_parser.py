@@ -1,4 +1,9 @@
 import parsley
+import collections
+
+
+nodepattern = collections.namedtuple("NodePattern", "alias labels properties")
+label = collections.namedtuple("Label", "name")
 
 
 Parser = parsley.makeGrammar(
@@ -97,7 +102,7 @@ Parser = parsley.makeGrammar(
                  (
                      Properties:p WS -> p
                  )?:p
-                ')' -> ["NodePattern", v, nl, p]
+                ')' -> nodepattern(v, nl, p)
 
     PatternElementChain = RelationshipPattern:rp WS NodePattern:np -> ["PatternElementChain", rp, np]
 
@@ -118,7 +123,7 @@ Parser = parsley.makeGrammar(
 
     NodeLabels = NodeLabel:head (WS NodeLabel)*:tail -> [head] + tail
 
-    NodeLabel = ':' LabelName:n -> ["nodeLable", n]
+    NodeLabel = ':' LabelName:n -> label(n)
 
     RangeLiteral = (WS IntegerLiteral)?:start WS ('..' WS IntegerLiteral)?:stop WS -> slice(start, stop)
 
@@ -130,35 +135,35 @@ Parser = parsley.makeGrammar(
 
     Expression12 = Expression11:ex1
                   (SP O R SP Expression11:ex2 -> ["or", ex2]
-                  )*:ops -> ["Expression", ex1, ops]
+                  )*:ops -> ["Expression12", ex1, ops]
 
     Expression11 = Expression10:ex1
                   (SP X O R SP Expression10:ex2 -> ["xor", ex2]
-                  )*:ops -> ["Expression", ex1, ops]
+                  )*:ops -> ["Expression11", ex1, ops]
 
     Expression10 = Expression9:ex1
                   (SP A N D SP Expression9:ex2 -> ["and", ex2]
-                  )*:ops -> ["Expression", ex1, ops]
+                  )*:ops -> ["Expression10", ex1, ops]
 
     Expression9 = ( SP N O T SP )*:not Expression8:ex1 -> ["Expression9", "not", ex1]
 
-    Expression8 = Expression7:ex1 (WS PartialComparisonExpression)*:ops -> ["Expression", ex1, ops]
+    Expression8 = Expression7:ex1 (WS PartialComparisonExpression)*:ops -> ["Expression8", ex1, ops]
 
     Expression7 = Expression6:ex1
                   (
                     WS '+' WS Expression6:ex2 -> ["add", ex2]
                     | WS '-' WS Expression6:ex2 -> ["sub", ex2]
-                  )*:c -> ["Expression", ex1, c]
+                  )*:c -> ["Expression7", ex1, c]
 
     Expression6 = Expression5:ex1
                   (WS '*' WS Expression5:ex2 -> ["multi", ex2]
                   | WS '/' WS Expression5:ex2 -> ["div", ex2]
                   | WS '%' WS Expression5:ex2 -> ["mod", ex2]
-                  )*:ops -> ["Expression", ex1, ops]
+                  )*:ops -> ["Expression6", ex1, ops]
 
     Expression5 = Expression4:ex1
                  (WS '^' WS Expression4:ex2 -> ["hat", ex2]
-                 )*:ops -> ["Expression", ex1, ops]
+                 )*:ops -> ["Expression5", ex1, ops]
 
     Expression4 = (('+' | '-') WS)*:signs Expression3:value -> ["Expression4", signs, value]
 
@@ -175,9 +180,9 @@ Parser = parsley.makeGrammar(
                     ):operator WS Expression2:ex2 -> [operator, ex2]
                     | SP I S SP N U L L  -> ["is_null"]
                     | SP I S SP N O T SP N U L L -> ["is_not_null"]
-                  )*:c -> ["Expression", ex1, c]
+                  )*:c -> ["Expression3", ex1, c]
 
-    Expression2 = Atom:a (PropertyLookup | NodeLabels)*:c -> ["Expression", a, c]
+    Expression2 = Atom:a (PropertyLookup | NodeLabels)*:c -> ["Expression2", a, c]
 
     Atom = NumberLiteral
          | StringLiteral
@@ -367,16 +372,15 @@ Parser = parsley.makeGrammar(
 
     Z = 'Z' | 'z'
     """,
-    {}, unwrap=False
+    {
+        "nodepattern": nodepattern,
+        "label": label,
+    }, unwrap=False
 )
 
 from pprint import pprint
+import sys
 #p = Parser("create (Neo:Crew {name:'Neo'}), (Morpheus:Crew {name: 'Morpheus'})")
-p = Parser(
-"""
-create (Neo:Crew {name:'Neo'}), (Morpheus:Crew {name: 'Morpheus'}), (Trinity:Crew {name: 'Trinity'}), (Cypher:Crew:Matrix {name: 'Cypher'}), (Smith:Matrix {name: 'Agent Smith'}), (Architect:Matrix {name:'The Architect'}),
-(Neo)-[:KNOWS]->(Morpheus), (Neo)-[:LOVES]->(Trinity), (Morpheus)-[:KNOWS]->(Trinity),
-(Morpheus)-[:KNOWS]->(Cypher), (Cypher)-[:KNOWS]->(Smith),(Smith)-[:CODED_BY]->(Architect)
-"""
+pprint(
+    Parser(sys.stdin.read()).Cypher()
 )
-pprint(p.Cypher())
