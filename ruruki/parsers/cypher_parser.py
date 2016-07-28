@@ -137,39 +137,42 @@ Parser = parsley.makeGrammar(
 
     Expression = Expression12
 
-    Expression12 = Expression11:ex1
-                  (SP O R SP Expression11:ex2 -> ["or", ex2]
-                  )*:ops -> ["Expression12", ex1, ops]
+    Expression12 = Expression11:ex1 SP O R SP Expression12:ex2 -> ["or", ex1, ex2]
+                 | Expression11
 
-    Expression11 = Expression10:ex1
-                  (SP X O R SP Expression10:ex2 -> ["xor", ex2]
-                  )*:ops -> ["Expression11", ex1, ops]
+    Expression11 = Expression10:ex1 SP X O R SP Expression11:ex2 -> ["xor", ex1, ex2]
+                 | Expression10
 
-    Expression10 = Expression9:ex1
-                  (SP A N D SP Expression9:ex2 -> ["and", ex2]
-                  )*:ops -> ["Expression10", ex1, ops]
+    Expression10 = Expression9:ex1 SP A N D SP Expression10:ex2 -> ["and", ex1, ex2]
+                 | Expression9
 
-    Expression9 = ( SP N O T SP )*:not Expression8:ex1 -> ["Expression9", "not", ex1]
+    Expression9 = SP N O T SP Expression9:ex -> ["not", ex]
+                | Expression8
 
-    Expression8 = Expression7:ex1 (WS PartialComparisonExpression)*:ops -> ["Expression8", ex1, ops]
+    Expression8 = Expression7:ex1 WS '='  WS Expression8:ex2 -> ["eq",  ex1, ex2]
+                | Expression7:ex1 WS '<>' WS Expression8:ex2 -> ["neq", ex1, ex2]
+                | Expression7:ex1 WS '!=' WS Expression8:ex2 -> ["neq", ex1, ex2]
+                | Expression7:ex1 WS '<'  WS Expression8:ex2 -> ["lt",  ex1, ex2]
+                | Expression7:ex1 WS '>'  WS Expression8:ex2 -> ["gt",  ex1, ex2]
+                | Expression7:ex1 WS '<=' WS Expression8:ex2 -> ["lte", ex1, ex2]
+                | Expression7:ex1 WS '>=' WS Expression8:ex2 -> ["gte", ex1, ex2]
+                | Expression7
 
-    Expression7 = Expression6:ex1
-                  (
-                    WS '+' WS Expression6:ex2 -> ["add", ex2]
-                    | WS '-' WS Expression6:ex2 -> ["sub", ex2]
-                  )*:c -> ["Expression7", ex1, c]
+    Expression7 = Expression6:ex1 WS '+' WS Expression7:ex2 -> ["add", ex1, ex2]
+                | Expression6:ex1 WS '-' WS Expression7:ex2 -> ["sub", ex1, ex2]
+                | Expression6
 
-    Expression6 = Expression5:ex1
-                  (WS '*' WS Expression5:ex2 -> ["multi", ex2]
-                  | WS '/' WS Expression5:ex2 -> ["div", ex2]
-                  | WS '%' WS Expression5:ex2 -> ["mod", ex2]
-                  )*:ops -> ["Expression6", ex1, ops]
+    Expression6 = Expression5:ex1 WS '*' WS Expression6:ex2 -> ["multi", ex1, ex2]
+                | Expression5:ex1 WS '/' WS Expression6:ex2 -> ["div",   ex1, ex2]
+                | Expression5:ex1 WS '%' WS Expression6:ex2 -> ["mod",   ex1, ex2]
+                | Expression5
 
-    Expression5 = Expression4:ex1
-                 (WS '^' WS Expression4:ex2 -> ["hat", ex2]
-                 )*:ops -> ["Expression5", ex1, ops]
+    Expression5 = Expression4:ex1 WS '^' WS Expression5:ex2 -> ["hat", ex1, ex2]
+                | Expression4
 
-    Expression4 = (('+' | '-') WS)*:signs Expression3:value -> ["Expression4", signs, value]
+    Expression4 = '+' WS Expression4
+                | '-' WS Expression4:ex -> ["minus", ex]
+                | Expression3
 
     Expression3 = Expression2:ex1
                   (
@@ -184,9 +187,11 @@ Parser = parsley.makeGrammar(
                     ):operator WS Expression2:ex2 -> [operator, ex2]
                     | SP I S SP N U L L  -> ["is_null"]
                     | SP I S SP N O T SP N U L L -> ["is_not_null"]
-                  )*:c -> ["Expression3", ex1, c]
+                  )+:c -> ["Expression3", ex1, c]
+                  | Expression2
 
-    Expression2 = Atom:a (PropertyLookup | NodeLabels)*:c -> ["Expression2", a, c]
+    Expression2 = Atom:a (PropertyLookup | NodeLabels)+:c -> ["Expression2", a, c]
+                  | Atom
 
     Atom = NumberLiteral
          | StringLiteral
@@ -194,12 +199,19 @@ Parser = parsley.makeGrammar(
          | T R U E -> True
          | F A L S E -> False
          | N U L L -> None
+         | CaseExpression
          | C O U N T '(' '*' ')' -> ["count *"]
          | MapLiteral
          | ListComprehension
-         | '[' WS Expression:head WS
-            (',' WS Expression:item WS -> item
-            )*:tail ']' -> [head] + tail
+         | '['
+                (
+                    WS Expression:head WS
+                    (',' WS Expression:item WS -> item
+                    )*:tail -> [head] + tail
+                    |
+                    -> []
+                ):ex
+            ']' -> ex
          | F I L T E R WS '(' WS FilterExpression:fex WS ')' -> fex
          | E X T R A C T WS '(' WS FilterExpression:fex WS (WS '|' Expression)?:ex ')' -> [fex, ex]
          | A L L WS '(' WS FilterExpression:fex WS ')' -> fex
@@ -211,14 +223,6 @@ Parser = parsley.makeGrammar(
          | FunctionInvocation
          | Variable
 
-    PartialComparisonExpression = '=' WS Expression7:ex -> ["eq", ex]
-                                | '<>' WS Expression7:ex-> ["neq", ex]
-                                | '!=' WS Expression7:ex -> ["neq", ex]
-                                | '<' WS Expression7:ex -> ["lt", ex]
-                                | '>' WS Expression7:ex -> ["gt", ex]
-                                | '<=' WS Expression7:ex -> ["le", ex]
-                                | '>=' WS Expression7:ex -> ["ge", ex]
-
     parenthesizedExpression = '(' WS Expression:ex WS ')' -> ex
 
     RelationshipsPattern = NodePattern:np (WS PatternElementChain)?:pec -> ["RelationshipsPattern", np, pec]
@@ -229,7 +233,7 @@ Parser = parsley.makeGrammar(
 
     FunctionInvocation = FunctionName:func
                         WS '(' WS
-                        (D I S T I N C T)?:distinct
+                        (D I S T I N C T WS -> "distinct")?:distinct
                         (
                             Expression:head
                             (
@@ -245,6 +249,16 @@ Parser = parsley.makeGrammar(
 
     # PropertyLookup = WS '.' WS ((PropertyKeyName ('?' | '!')) | PropertyKeyName)
     PropertyLookup = WS '.' WS PropertyKeyName:n -> ["PropertyLookup", n]
+
+    CaseExpression =
+                     C A S E
+                     (Expression)?:ex
+                     (WS CaseAlternatives)+:cas 
+                     (WS E L S E WS Expression)?:el
+                     WS E N D
+                     -> ["Case", ex, cas, el]
+
+    CaseAlternatives = W H E N WS Expression:ex1 WS T H E N WS Expression:ex2 -> ["CaseAlternatives", ex1, ex2]
 
     Variable = SymbolicName
 
@@ -294,7 +308,7 @@ Parser = parsley.makeGrammar(
 
     HexInteger = '0' X <HexDigit+>:ds -> int(ds, 16)
 
-    DecimalInteger = ~'0' <digit+>:ds -> int(ds)
+    DecimalInteger = <digit+>:ds -> int(ds)
 
     DoubleLiteral = ExponentDecimalReal
                   | RegularDecimalReal
@@ -382,12 +396,20 @@ Parser = parsley.makeGrammar(
     }, unwrap=False
 )
 
-# from pprint import pprint
+from pprint import pprint
 # import sys
 # q = "create (Neo:Crew {name:'Neo'}), (Morpheus:Crew {name: 'Morpheus'})"
+q1 = "1 + 2 - 3 + 4"
+q = """
+MATCH
+  (c:Customer {custNo: '1234567890'})-[rco:SUPPORTED_BY]->(o:OrgUnit)<-[roe:MEMBER_OF]-(e:Employee)
+WHERE
+  COALESCE(rco.validFrom, 0) <= timestamp()
+RETURN c as node
+"""
 # print q
-# p = Parser(q)
-# pprint(p.Cypher())
+p = Parser(q)
+pprint(p.Cypher())
 # pprint(
 #     Parser(sys.stdin.read()).Cypher()
 # )
