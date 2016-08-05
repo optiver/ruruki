@@ -95,7 +95,7 @@ Parser = parsley.makeGrammar(
 
     NodePattern = '(' WS
                  (
-                    Variable:v WS -> v
+                    SymbolicName:s WS -> s
                  )?:v
                  (
                      NodeLabels:nl WS -> nl
@@ -103,7 +103,7 @@ Parser = parsley.makeGrammar(
                  (
                      Properties:p WS -> p
                  )?:p
-                ')' -> ["NodePattern", v, nl, p]
+                ')' -> ["NodePattern", s, nl, p]
 
     PatternElementChain = RelationshipPattern:rp WS NodePattern:np -> ["PatternElementChain", rp, np]
 
@@ -520,6 +520,15 @@ def case(context, ex, alt, el):
 def match(context, pattern, where_):
     assert where_ is None
 
+
+def node_pattern(context, name, labels, properties):
+    entities = context["__entityset__"]
+    for label in labels:
+        label = cypher_eval(label, context) # check is easier to get directly
+        entities = entities.filter(label=label)
+    props = cypher_eval(properties, context)
+    entities = entities.filter(**props)
+    return entities
 
 
 def singlequery(context, match, with_, return_):
