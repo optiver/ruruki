@@ -479,8 +479,8 @@ class EntitySet(interfaces.IEntitySet):
         return self._prop_reference.keys()
 
     def get_indexes(self):
-        for label in self._prop_reference.keys():
-            for key in self._prop_reference[label].keys():
+        for label in self._prop_reference:
+            for key in self._prop_reference[label]:
                 if not key.startswith("_all"):
                     yield label, key
 
@@ -523,7 +523,7 @@ class EntitySet(interfaces.IEntitySet):
             raise KeyError("No such id {0!r} exists.".format(entity.ident))
 
         collection = self._prop_reference[entity.label]
-        for key in entity.properties.keys():
+        for key in entity.properties:
             if key in collection:
                 collection[key].discard(entity)
 
