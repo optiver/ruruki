@@ -9,7 +9,7 @@ import json
 import os
 import shutil
 import tempfile
-import unittest2
+import unittest
 from ruruki import interfaces
 from ruruki.graphs import Graph, PersistentGraph
 from ruruki.entities import Entity, Edge, Vertex
@@ -919,7 +919,7 @@ def create_graph_mock_path():
     return path
 
 
-class TestPersistentGraph(unittest2.TestCase):
+class TestPersistentGraph(unittest.TestCase):
     def setUp(self):
         path = tempfile.mkdtemp()
         self.graph = PersistentGraph(path)

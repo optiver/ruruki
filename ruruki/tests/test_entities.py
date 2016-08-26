@@ -3,14 +3,14 @@
 # pylint: disable=protected-access
 # pylint: disable=too-many-public-methods
 
-import unittest2
+import unittest
 from ruruki.interfaces import IEdge, VertexError, EntityUpdateError
 from ruruki.entities import Entity, Edge, Vertex
 from ruruki.test_utils import base
 from ruruki.graphs import Graph
 
 
-class TestEntityBase(unittest2.TestCase):
+class TestEntityBase(unittest.TestCase):
     def setUp(self):
         self.marko = Entity(label="person", name="marko", age=29)
 
