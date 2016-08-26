@@ -593,7 +593,7 @@ class TestEdge(base.TestBase, TestEntityBase):
 
     def test_remove_property(self):
         self.marko_knows_josh.remove_property("weight")
-        self.assertEqual(self.marko_knows_josh.properties.keys(), [])
+        self.assertEqual(list(self.marko_knows_josh.properties.keys()), [])
 
     def test_get_out_vertex(self):
         self.assertEqual(self.marko_knows_josh.get_out_vertex(), self.josh)
