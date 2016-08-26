@@ -75,6 +75,12 @@ class Entity(interfaces.IEntity):
         }
 
     def __lt__(self, other):
+        if self.ident is None:
+            return True
+
+        if other.ident is None:
+            return False
+
         return self.ident < other.ident
 
     def __getattribute__(self, name):

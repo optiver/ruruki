@@ -491,17 +491,16 @@ class IEntity(object):
 
         .. code-block:: python
 
+            >>> from pprint import pprint
             >>> from ruruki.entities import Entity
             >>> e = Entity("Person")
             >>> e.set_property(name="Bob")
             >>> e.set_property(_private_name="Sasquatch")
-            >>> e.as_dict()
-            {'properties': {'name': 'Bob'}, \
-'label': 'Person', 'id': None, 'metadata': {}}
+            >>> pprint(e.as_dict()["properties"])
+            {'name': 'Bob'}
 
-            >>> e.as_dict(include_privates=True)
-            {'properties': {'_private_name': 'Sasquatch', 'name': 'Bob'}, \
-'label': 'Person', 'id': None, 'metadata': {}}
+            >>> pprint(e.as_dict(include_privates=True)["properties"])
+            {'_private_name': 'Sasquatch', 'name': 'Bob'}
 
 
         :param include_privates: True to include private property keys in the
