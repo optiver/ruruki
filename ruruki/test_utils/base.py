@@ -2,12 +2,12 @@
 """
 Base Test setup.
 """
-import unittest2
+import unittest
 from ruruki import graphs
 from ruruki.test_utils import helpers
 
 
-class TestBase(unittest2.TestCase):
+class TestBase(unittest.TestCase):
     """
     Base test class.
     """

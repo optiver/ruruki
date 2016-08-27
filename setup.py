@@ -31,15 +31,19 @@ auto_version_setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
+        "Operating System :: MacOS",
+        "Operating System :: POSIX :: BSD",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: Unix",
         "Intended Audience :: Developers",
         "Intended Audience :: Information Technology",
         "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 2 :: Only",
+        "Programming Language :: Python :: 3.5",
         "Topic :: Database :: Database Engines/Servers",
         "Topic :: Software Development :: Libraries",
     ],
     keywords=(
-        "graph db momory database in-memory snail extraction tool "
+        "graph db memory database in-memory snail extraction tool "
         "POC proof concept temporary lightweight"
     ),
     description=(

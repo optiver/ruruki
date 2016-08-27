@@ -4,7 +4,7 @@
 # pylint: disable=too-many-public-methods
 # pylint: disable=no-member
 
-import unittest2 as unittest
+import unittest
 from ruruki.graphs import IDGenerator
 from ruruki.entities import Vertex, EntitySet, Edge
 from ruruki.test_utils import base
@@ -512,7 +512,7 @@ class TestEndsWithFiltering(FilteringBase):
                 surname__endswith="s",
                 age=30,
             ).sorted(),
-            [self.marko, self.john],
+            sorted([self.marko, self.john]),
         )
 
     def test_filter_with_label_not_all_props_match(self):

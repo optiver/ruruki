@@ -16,11 +16,13 @@ def get_test_dump_graph_file_handler():  # pylint: disable=invalid-name
     )
 
 
-def create_tmp_file_handler(content="", delete=False):
+def create_tmp_file_handler(content=None, delete=False):
     """
     Create a temp named file.
     """
-    tmp_file = tempfile.NamedTemporaryFile(delete=delete)
+    if content is None:
+        content = ""
+    tmp_file = tempfile.NamedTemporaryFile(mode="w+", delete=delete)
     tmp_file.write(content)
     tmp_file.seek(0)
     return tmp_file
