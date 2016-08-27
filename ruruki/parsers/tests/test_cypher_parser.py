@@ -1,4 +1,3 @@
-import unittest2
 from ruruki.parsers import cypher_parser
 from ruruki.test_utils import base
 
