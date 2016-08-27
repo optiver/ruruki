@@ -3,36 +3,33 @@
 https://s3.amazonaws.com/artifacts.opencypher.org/cypher.ebnf
 """
 import parsley
-import collections
-
-
-nodepattern = collections.namedtuple("NodePattern", "alias labels properties")
-label = collections.namedtuple("Label", "name")
 
 
 Parser = parsley.makeGrammar(
     r"""
-    Cypher = WS Statement:s (WS ';')? WS -> ["Cypher", s]
+    Cypher = WS Statement:s (WS ';')? WS -> s
 
     Statement = Query
 
     Query = RegularQuery
 
-    RegularQuery = SingleQuery:sq (WS Union)*:u -> ["RegularQuery", sq, u]
+    RegularQuery = SingleQuery:sq SP U N I O N SP A L L SP RegularQuery:rq -> ["UnionAll", sq, rq]
+                 | SingleQuery:sq SP U N I O N SP RegularQuery:rq -> ["Union", sq, rq]
+                 | SingleQuery:sq
 
-    SingleQuery = Clause:head (WS Clause)*:tail -> ["SingleQuery", [head] + tail]
+    # SingleQuery = Clause:head (WS Clause)*:tail -> ["SingleQuery", [head] + tail]
 
-    Union = U N I O N SP (A L L)? SingleQuery:sq -> ["Union", sq]
+    # Clause = Match
+    #        | Unwind
+    #        | Merge
+    #        | Create
+    #        | Set
+    #        | Delete
+    #        | Remove
+    #        | With
+    #        | Return
 
-    Clause = Match
-           | Unwind
-           | Merge
-           | Create
-           | Set
-           | Delete
-           | Remove
-           | With
-           | Return
+    SingleQuery = Match?:m WS With?:w WS Return:r -> ["SingleQuery", m, w, r]
 
     # TODO: Not usre if I need to handle optional !!
     Match = (O P T I O N A L SP)? M A T C H WS Pattern:p (WS Where)?:w -> ["Match", p, w]
@@ -69,8 +66,8 @@ Parser = parsley.makeGrammar(
     ReturnItems = ('*' | ReturnItem):head
                 (WS ',' WS ReturnItem )*:tail -> ["ReturnItems", [head] + tail]
 
-    ReturnItem = Expression:ex SP A S SP Variable:v -> ["ReturnItem", ex, v]
-                | Expression:ex -> ["ReturnItem", ex, None]
+    ReturnItem = Expression:ex SP A S SP SymbolicName:s -> ["ReturnItem", ex, s]
+               | Expression:ex -> ["ReturnItem", ex, None]
 
     Order =  O R D E R SP B Y SP SortItem:head (',' WS SortItem)*:tail -> ["Order", [head] + tail]
 
@@ -98,7 +95,7 @@ Parser = parsley.makeGrammar(
 
     NodePattern = '(' WS
                  (
-                    Variable:v WS -> v
+                    SymbolicName:s WS -> s
                  )?:v
                  (
                      NodeLabels:nl WS -> nl
@@ -106,7 +103,7 @@ Parser = parsley.makeGrammar(
                  (
                      Properties:p WS -> p
                  )?:p
-                ')' -> nodepattern(v, nl, p)
+                ')' -> ["NodePattern", s, nl, p]
 
     PatternElementChain = RelationshipPattern:rp WS NodePattern:np -> ["PatternElementChain", rp, np]
 
@@ -127,7 +124,7 @@ Parser = parsley.makeGrammar(
 
     NodeLabels = NodeLabel:head (WS NodeLabel)*:tail -> [head] + tail
 
-    NodeLabel = ':' LabelName:n -> label(n)
+    NodeLabel = ':' LabelName:n -> ["NodeLabel", n]
 
     RangeLiteral = (WS IntegerLiteral)?:start WS ('..' WS IntegerLiteral)?:stop WS -> slice(start, stop)
 
@@ -146,7 +143,7 @@ Parser = parsley.makeGrammar(
     Expression10 = Expression9:ex1 SP A N D SP Expression10:ex2 -> ["and", ex1, ex2]
                  | Expression9
 
-    Expression9 = SP N O T SP Expression9:ex -> ["not", ex]
+    Expression9 = N O T SP Expression9:ex -> ["not", ex]
                 | Expression8
 
     Expression8 = Expression7:ex1 WS '='  WS Expression8:ex2 -> ["eq",  ex1, ex2]
@@ -196,9 +193,9 @@ Parser = parsley.makeGrammar(
     Atom = NumberLiteral
          | StringLiteral
          | Parameter
-         | T R U E -> True
-         | F A L S E -> False
-         | N U L L -> None
+         | T R U E -> ["Literal", True]
+         | F A L S E -> ["Literal", False]
+         | N U L L -> ["Literal", None]
          | CaseExpression
          | C O U N T '(' '*' ')' -> ["count *"]
          | MapLiteral
@@ -211,13 +208,13 @@ Parser = parsley.makeGrammar(
                     |
                     -> []
                 ):ex
-            ']' -> ex
-         | F I L T E R WS '(' WS FilterExpression:fex WS ')' -> fex
-         | E X T R A C T WS '(' WS FilterExpression:fex WS (WS '|' Expression)?:ex ')' -> [fex, ex]
-         | A L L WS '(' WS FilterExpression:fex WS ')' -> fex
-         | A N Y WS '(' WS FilterExpression:fex WS ')' -> fex
-         | N O N E WS '(' WS FilterExpression:fex WS ')' -> fex
-         | S I N G L E WS '(' WS FilterExpression:fex WS ')' -> fex
+            ']' -> ["List", ex]
+         | F I L T E R WS '(' WS FilterExpression:fex WS ')' -> ["Filter", fex]
+         | E X T R A C T WS '(' WS FilterExpression:fex WS (WS '|' Expression)?:ex ')' -> ["Extract", fex, ex]
+         | A L L WS '(' WS FilterExpression:fex WS ')' -> ["All", fex]
+         | A N Y WS '(' WS FilterExpression:fex WS ')' -> ["Any", fex]
+         | N O N E WS '(' WS FilterExpression:fex WS ')' -> ["None", fex]
+         | S I N G L E WS '(' WS FilterExpression:fex WS ')' -> ["Single", fex]
          | RelationshipsPattern
          | parenthesizedExpression
          | FunctionInvocation
@@ -251,19 +248,21 @@ Parser = parsley.makeGrammar(
     PropertyLookup = WS '.' WS PropertyKeyName:n -> ["PropertyLookup", n]
 
     CaseExpression =
-                     C A S E
+                     C A S E WS
                      (Expression)?:ex
                      (WS CaseAlternatives)+:cas 
                      (WS E L S E WS Expression)?:el
                      WS E N D
                      -> ["Case", ex, cas, el]
 
-    CaseAlternatives = W H E N WS Expression:ex1 WS T H E N WS Expression:ex2 -> ["CaseAlternatives", ex1, ex2]
+    CaseAlternatives = W H E N WS Expression:ex1 WS T H E N WS Expression:ex2 -> [ex1, ex2]
 
-    Variable = SymbolicName
+    Variable = SymbolicName:s -> ["Variable", s]
 
-    StringLiteral = '"' (~('"'|'\\') anything | EscapedChar)*:cs '"' -> "".join(cs)
+    StringLiteral = (
+                  '"' (~('"'|'\\') anything | EscapedChar)*:cs '"' -> "".join(cs)
                   | "'" (~("'"|'\\') anything | EscapedChar)*:cs "'" -> "".join(cs)
+                  ):l -> ["Literal", l]
 
     EscapedChar = '\\'
                 ('\\' -> '\\'
@@ -276,8 +275,10 @@ Parser = parsley.makeGrammar(
                 | '%' -> '%'
                 )
 
-    NumberLiteral = DoubleLiteral
+    NumberLiteral = (
+                  DoubleLiteral
                   | IntegerLiteral
+                  ):l -> ["Literal", l]
 
     MapLiteral = '{' WS
                  (
@@ -288,7 +289,7 @@ Parser = parsley.makeGrammar(
                         ',' WS PropertyKeyName:k WS ':' WS Expression:v WS -> (k, v)
                     )*:tail -> [head] + tail
                  | -> []):pairs
-                '}' -> dict(pairs)
+                '}' -> ["Literal", dict(pairs)]
 
     Parameter = '{' WS (SymbolicName | DecimalInteger):p WS '}' -> ["Parameter", p]
 
@@ -390,26 +391,220 @@ Parser = parsley.makeGrammar(
 
     Z = 'Z' | 'z'
     """,
-    {
-        "nodepattern": nodepattern,
-        "label": label,
-    }, unwrap=False
+    {}
 )
 
-from pprint import pprint
-# import sys
-# q = "create (Neo:Crew {name:'Neo'}), (Morpheus:Crew {name: 'Morpheus'})"
-q1 = "1 + 2 - 3 + 4"
-q = """
-MATCH
-  (c:Customer {custNo: '1234567890'})-[rco:SUPPORTED_BY]->(o:OrgUnit)<-[roe:MEMBER_OF]-(e:Employee)
-WHERE
-  COALESCE(rco.validFrom, 0) <= timestamp()
-RETURN c as node
-"""
-# print q
-p = Parser(q)
-pprint(p.Cypher())
-# pprint(
-#     Parser(sys.stdin.read()).Cypher()
-# )
+
+def literal(context, value):
+    return value
+
+
+def variable(context, name):
+    return context[name]
+
+
+def minus(context, ast):
+    v = cypher_eval(ast, context)
+    return -v
+
+
+def hat(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1**v2
+
+
+def multi(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1*v2
+
+
+def div(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1/v2
+
+
+def mod(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1%v2
+
+
+def add(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1+v2
+
+
+def sub(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1-v2
+
+
+def eq(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1 == v2
+
+
+def neq(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1 != v2
+
+
+def lt(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1<v2
+
+
+def gt(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1>v2
+
+
+def lte(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1<=v2
+
+
+def gte(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1>=v2
+
+
+def not_(context, ast):
+    v = cypher_eval(ast, context)
+    return not v
+
+
+def and_(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1 and v2
+
+
+def xor(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return bool(v1) != bool(v2)
+
+
+def or_(context, ast1, ast2):
+    v1 = cypher_eval(ast1, context)
+    v2 = cypher_eval(ast2, context)
+    return v1 or v2
+
+
+def list_(context, asts):
+    return [cypher_eval(each, context) for each in asts]
+
+
+def case(context, ex, alt, el):
+    v = cypher_eval(ex, context)
+    for when_, then_ in alt:
+        wv = cypher_eval(when_, context)
+        if v == wv:
+            tv = cypher_eval(then_, context)
+            return tv
+    return cypher_eval(el, context)
+
+
+def match(context, pattern, where_):
+    assert where_ is None
+
+
+def node_pattern(context, name, labels, properties):
+    entities = context["__entityset__"]
+    for label in labels:
+        label = cypher_eval(label, context) # check is easier to get directly
+        entities = entities.filter(label=label)
+    props = cypher_eval(properties, context)
+    entities = entities.filter(**props)
+    return entities
+
+
+def singlequery(context, match, with_, return_):
+    assert with_ is None
+    return cypher_eval(return_, context)
+
+
+def return_body(context, items, order, skip, limit):
+    assert order is None
+    assert skip is None
+    assert limit is None
+    return cypher_eval(items, context)
+
+
+def return_item(context, ex, name):
+    v = cypher_eval(ex, context)
+    return v, name
+
+
+def return_items(context, items):
+    count = 0
+    res = {}
+    for each in items:
+        v, name = cypher_eval(each, context)
+        if name is None:
+            name = count
+            count += 1
+        res[name] = v
+    return res
+
+
+def return_(context, distinct, body):
+    assert distinct is None
+    return cypher_eval(body, context)
+
+
+ACTION_MAP = {
+    "Atom": atom,
+    "SingleQuery": singlequery,
+    "List": list_,
+    "Case": case,
+    "not": not_,
+    "and": and_,
+    "xor": xor,
+    "or": or_,
+    "minus": minus,
+    "eq": eq,
+    "neq": neq,
+    "lt": lt,
+    "lte": lte,
+    "gt": gt,
+    "gte": gte,
+    "multi": multi,
+    "add": add,
+    "sub": sub,
+    "div": div,
+    "mod": mod,
+    "hat": hat,
+    "Variable": variable,
+    "Literal": literal,
+    "Match": match,
+    "Return": return_,
+    "ReturnBody": return_body,
+    "ReturnItem": return_item,
+    "ReturnItems": return_items,
+}
+
+def cypher_eval(value, context):
+    name, args = value[0], value[1:]
+    return ACTION_MAP[name](context, *args)
+
+
+def parse(query_string):
+    p = Parser(q).Cypher()
+    cypher_eval(p, {})
+
+
+#q = "MATCH (n:Person {name: 'Bob'}) RETURN DISTINCT n;"
+#parse(q)
