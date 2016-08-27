@@ -26,17 +26,20 @@ class TestGraph(base.TestBase):
 
         # sorted the edges and vertices before comparing the two dicts
         loaded_temp = json.load(tmp_file)
-        for key in loaded_temp:
-            loaded_temp[key].sort()
-
         loaded_dump = json.load(helpers.get_test_dump_graph_file_handler())
-        for key in loaded_dump:
-            loaded_dump[key].sort()
 
-        self.assertDictEqual(
-            loaded_temp,
-            loaded_dump,
+        # THIS IS A TOTAL HACK
+        # lets fist make sure that all the keys exist
+        self.assertEqual(
+            sorted(loaded_temp),
+            sorted(loaded_dump),
         )
+
+        # now we check the content
+        for key in loaded_dump:
+            a = loaded_temp[key].sort(key=lambda x: sorted(x))
+            b = loaded_dump[key].sort(key=lambda x: sorted(x))
+            self.assertEqual(a, b)
 
     def test_load(self):
         graph = Graph()
