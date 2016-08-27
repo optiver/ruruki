@@ -1,7 +1,11 @@
 from assertpy import assert_that
 from behave import when, given, then
 from ruruki.graphs import Graph
-from StringIO import StringIO
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 @given("we have a empty graph object")
