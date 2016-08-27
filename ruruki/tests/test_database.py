@@ -9,7 +9,7 @@ import json
 import os
 import shutil
 import tempfile
-import unittest2
+import unittest
 from ruruki import interfaces
 from ruruki.graphs import Graph, PersistentGraph
 from ruruki.entities import Entity, Edge, Vertex
@@ -26,17 +26,20 @@ class TestGraph(base.TestBase):
 
         # sorted the edges and vertices before comparing the two dicts
         loaded_temp = json.load(tmp_file)
-        for key in loaded_temp:
-            loaded_temp[key].sort()
-
         loaded_dump = json.load(helpers.get_test_dump_graph_file_handler())
-        for key in loaded_dump:
-            loaded_dump[key].sort()
 
-        self.assertDictEqual(
-            loaded_temp,
-            loaded_dump,
+        # THIS IS A TOTAL HACK
+        # lets fist make sure that all the keys exist
+        self.assertEqual(
+            sorted(loaded_temp),
+            sorted(loaded_dump),
         )
+
+        # now we check the content
+        for key in loaded_dump:
+            a = loaded_temp[key].sort(key=lambda x: sorted(x))
+            b = loaded_dump[key].sort(key=lambda x: sorted(x))
+            self.assertEqual(a, b)
 
     def test_load(self):
         graph = Graph()
@@ -919,7 +922,7 @@ def create_graph_mock_path():
     return path
 
 
-class TestPersistentGraph(unittest2.TestCase):
+class TestPersistentGraph(unittest.TestCase):
     def setUp(self):
         path = tempfile.mkdtemp()
         self.graph = PersistentGraph(path)

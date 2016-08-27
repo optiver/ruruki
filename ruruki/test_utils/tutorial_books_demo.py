@@ -1,4 +1,5 @@
 #pylint: skip-file
+from __future__ import print_function
 from ruruki.graphs import Graph
 
 # create a empty graph
@@ -58,18 +59,18 @@ graph.get_or_create_edge(jane, "READING", linux_command_line)
 graph.get_or_create_edge(jane, "READING", python_pocket_ref)
 
 
-print "People:"
-print graph.get_vertices("person").all()
+print("People:")
+print(graph.get_vertices("person").all())
 
-print "\nPython books:"
-print graph.get_vertices("book", title__icontains="Python").all()
+print("\nPython books:")
+print(graph.get_vertices("book", title__icontains="Python").all())
 
-print "\nVertex with identity number 0:"
-print repr(graph.get_vertex(0))
+print("\nVertex with identity number 0:")
+print(repr(graph.get_vertex(0)))
 
-print "\nUnion of books with 'Reference' and 'Crash Course' in the title:"
-print (graph.get_vertices("book", name__contains="Reference") | graph.get_vertices("book", title__contains="Crash Course")).all()
+print("\nUnion of books with 'Reference' and 'Crash Course' in the title:")
+print((graph.get_vertices("book", name__contains="Reference") | graph.get_vertices("book", title__contains="Crash Course")).all())
 
 
-print "\nPython books with that do not contain 'Crash Course' in the title:"
-print (graph.get_vertices("book", name__contains="Python") - graph.get_vertices("book", title__contains="Crash Course")).all()
+print("\nPython books with that do not contain 'Crash Course' in the title:")
+print((graph.get_vertices("book", name__contains="Python") - graph.get_vertices("book", title__contains="Crash Course")).all())

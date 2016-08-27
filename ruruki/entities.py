@@ -63,7 +63,7 @@ class Entity(interfaces.IEntity):
         else:
             properties = {
                 key: value
-                for key, value in self.properties.iteritems()
+                for key, value in self.properties.items()
                 if key.startswith("_") is False
             }
 
@@ -73,6 +73,15 @@ class Entity(interfaces.IEntity):
             "label": self.label,
             "properties": properties,
         }
+
+    def __lt__(self, other):
+        if self.ident is None:
+            return True
+
+        if other.ident is None:
+            return False
+
+        return self.ident < other.ident
 
     def __getattribute__(self, name):
         if name.startswith("prop__"):
@@ -470,8 +479,8 @@ class EntitySet(interfaces.IEntitySet):
         return self._prop_reference.keys()
 
     def get_indexes(self):
-        for label in self._prop_reference.iterkeys():
-            for key in self._prop_reference[label].iterkeys():
+        for label in self._prop_reference:
+            for key in self._prop_reference[label]:
                 if not key.startswith("_all"):
                     yield label, key
 
@@ -514,7 +523,7 @@ class EntitySet(interfaces.IEntitySet):
             raise KeyError("No such id {0!r} exists.".format(entity.ident))
 
         collection = self._prop_reference[entity.label]
-        for key in entity.properties.iterkeys():
+        for key in entity.properties:
             if key in collection:
                 collection[key].discard(entity)
 

@@ -1,12 +1,12 @@
 # pylint: disable=missing-docstring
 import os.path
 import tempfile
-import unittest2
+import unittest
 from ruruki import interfaces
 from ruruki import locks
 
 
-class TestBaseLock(unittest2.TestCase):
+class TestBaseLock(unittest.TestCase):
     def setUp(self):
         self.lock = locks.Lock()
 
@@ -52,7 +52,7 @@ class TestBaseLock(unittest2.TestCase):
         self.assertEqual(lock.locked, False)
 
 
-class TestFileLock(unittest2.TestCase):
+class TestFileLock(unittest.TestCase):
     def setUp(self):
         self.filename = tempfile.NamedTemporaryFile()
         self.lock = locks.FileLock(self.filename.name)
@@ -108,7 +108,7 @@ class TestFileLock(unittest2.TestCase):
         self.assertEqual(lock.locked, False)
 
 
-class TestDirectoryLock(unittest2.TestCase):
+class TestDirectoryLock(unittest.TestCase):
     def setUp(self):
         self.path = tempfile.mkdtemp()
         self.lock = locks.DirectoryLock(self.path)
