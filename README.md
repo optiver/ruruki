@@ -4,9 +4,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/optiver/ruruki/badge.svg?branch=master)](https://coveralls.io/github/optiver/ruruki?branch=master)
 [![PyPI](https://img.shields.io/pypi/pyversions/ruruki.svg)](https://pypi.python.org/pypi/ruruki)
 [![PyPI](https://img.shields.io/pypi/status/ruruki.svg)](https://pypi.python.org/pypi/ruruki)
-[![PyPI](https://img.shields.io/pypi/dd/ruruki.svg)](https://pypi.python.org/pypi/ruruki)
-[![PyPI](https://img.shields.io/pypi/dw/ruruki.svg)](https://pypi.python.org/pypi/ruruki)
-[![PyPI](https://img.shields.io/pypi/dm/ruruki.svg)](https://pypi.python.org/pypi/ruruki)
 [![Join the chat at https://gitter.im/optiver/ruruki](https://badges.gitter.im/optiver/ruruki.svg)](https://gitter.im/optiver/ruruki?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Introduction
