@@ -1,5 +1,4 @@
 [![Documentation Status](https://readthedocs.org/projects/ruruki/badge/?version=master)](http://ruruki.readthedocs.org/en/master/?badge=master)
-[![GitHub release](https://img.shields.io/github/release/qubyte/rubidium.svg?maxAge=2592000)](https://github.com/optiver/ruruki/releases/latest)
 [![Build Status](https://travis-ci.org/optiver/ruruki.svg?branch=master)](https://travis-ci.org/optiver/ruruki)
 [![Code Climate](https://codeclimate.com/github/optiver/ruruki/badges/gpa.svg)](https://codeclimate.com/github/optiver/ruruki)
 [![Coverage Status](https://coveralls.io/repos/github/optiver/ruruki/badge.svg?branch=master)](https://coveralls.io/github/optiver/ruruki?branch=master)
