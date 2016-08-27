@@ -1,3 +1,4 @@
+#pylint: skip-file
 from ruruki.parsers import cypher_parser
 from ruruki.test_utils import base
 
@@ -128,5 +129,5 @@ class TestCypherEval(base.TestBase):
     def test_simplest_query(self):
         self.eval_query("RETURN 1 + 2 as a;", {"a": 3})
 
-    def test_simple_match_query(self):
-        self.eval_query("MATCH (a) RETURN a;", self.graph.vertices)
+    # def test_simple_match_query(self):
+    #     self.eval_query("MATCH (a) RETURN a;", self.graph.vertices)

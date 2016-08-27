@@ -566,7 +566,7 @@ def return_(context, distinct, body):
 
 
 ACTION_MAP = {
-    "Atom": atom,
+    # "Atom": atom,
     "SingleQuery": singlequery,
     "List": list_,
     "Case": case,
