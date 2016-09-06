@@ -6,7 +6,7 @@ import os.path
 from ruruki import interfaces
 
 if os.name == 'nt':
-    import msvcrt
+    import msvcrt    # pylint: disable=import-error
 else:
     import fcntl
 
