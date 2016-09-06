@@ -3,8 +3,12 @@ Classes for handling locking and ownerships.
 """
 import os
 import os.path
-import fcntl
 from ruruki import interfaces
+
+if os.name == 'nt':
+    import msvcrt
+else:
+    import fcntl
 
 
 class Lock(interfaces.ILock):
@@ -68,10 +72,12 @@ class FileLock(Lock):
         self._fd = None
 
     def acquire(self):
-        self._fd = open(self.filename, "w")
-
         try:
-            fcntl.flock(self._fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self._fd = open(self.filename, "w")
+            if os.name == 'nt':
+                msvcrt.locking(self._fd.fileno(), msvcrt.LK_NBLCK, -1)
+            else:
+                fcntl.flock(self._fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except IOError:
             raise interfaces.AcquireError(
                 "Failed acquiring a lock on {0!r}.".format(self.filename)
