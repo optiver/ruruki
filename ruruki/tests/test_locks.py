@@ -1,5 +1,6 @@
 # pylint: disable=missing-docstring
 import os.path
+import sys
 import tempfile
 import unittest
 from ruruki import interfaces
@@ -143,6 +144,7 @@ class TestDirectoryLock(unittest.TestCase):
             self.lock.release,
         )
 
+    @unittest.skipIf(os.name == "nt", "Windows won't allow that")
     def test_release_file_not_found(self):
         self.lock.acquire()
         os.remove(self.lock.filename)
