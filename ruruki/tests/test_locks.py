@@ -1,6 +1,6 @@
 # pylint: disable=missing-docstring
 import os.path
-import sys
+import os
 import tempfile
 import unittest
 from ruruki import interfaces
