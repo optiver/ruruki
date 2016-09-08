@@ -55,12 +55,21 @@ class TestBaseLock(unittest.TestCase):
 
 class TestFileLock(unittest.TestCase):
     def setUp(self):
-        self.filename = tempfile.NamedTemporaryFile()
-        self.lock = locks.FileLock(self.filename.name)
+        self.tmpfile = tempfile.NamedTemporaryFile(delete=False)
+        self.filename = self.tmpfile.name
+        # on Windows the file can not be open second time, which
+        # what FileLock does
+        self.tmpfile.close()
+        self.lock = locks.FileLock(self.filename)
+
+    def tearDown(self):
+        os.remove(self.filename)
 
     def test_acquire(self):
         self.lock.acquire()
         self.assertEqual(self.lock.locked, True)
+        # so that file can be safely removed on Windows
+        self.lock.release()
 
     def test_acquire_flock_error(self):
         filename = tempfile.NamedTemporaryFile()
