@@ -108,11 +108,11 @@ class TestFileLock(unittest.TestCase):
         self.assertEqual(self.lock.locked, False)
 
     def test_enter_contex_manager(self):
-        with locks.FileLock(self.filename.name) as lock:
+        with locks.FileLock(self.filename) as lock:
             self.assertEqual(lock.locked, True)
 
     def test_exit_contex_manager(self):
-        context_manager = locks.FileLock(self.filename.name)
+        context_manager = locks.FileLock(self.filename)
         lock = context_manager.__enter__()
         lock.__exit__(None, None, None)
         self.assertEqual(lock.locked, False)
