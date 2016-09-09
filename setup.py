@@ -38,6 +38,8 @@ auto_version_setup(
         "Intended Audience :: Developers",
         "Intended Audience :: Information Technology",
         "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Topic :: Database :: Database Engines/Servers",
         "Topic :: Software Development :: Libraries",
