@@ -1,27 +1,20 @@
 language: python
+python:
+  - 2.7
+  - 3.3
+  - 3.4
+  - 3.5
 install:
   - pip install coveralls
   - pip install tox-travis
 matrix:
   include:
-    - python: 2.7
-      env:
-      - TOXENV=py27
-    - python: 3.3
-      env:
-      - TOXENV=py33
-    - python: 3.4
-      env:
-      - TOXENV=py34
-    - python: 3.5
-      env:
-      - TOXENV=py35
     - python: 3.5
       env:
       - TOXENV=docs
 script:
   - mkdir docs/_static
-  - tox
+  - tox -e ${TOXENV:-py${TRAVIS_PYTHON_VERSION/./}}
 after_success: coveralls
 addons:
     code_climate:
