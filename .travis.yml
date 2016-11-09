@@ -4,6 +4,9 @@ python:
   - 3.3
   - 3.4
   - 3.5
+  - 3.5-dev
+  - 3.6-dev
+  - nightly
 install:
   - pip install coveralls
   - pip install tox-travis
@@ -12,6 +15,10 @@ matrix:
     - python: 3.5
       env:
       - TOXENV=docs
+  allow_failures:
+    - python: 3.5-dev
+    - python: 3.6-dev
+    - python: nightly
 script:
   - mkdir docs/_static
   - tox -e ${TOXENV:-py${TRAVIS_PYTHON_VERSION/./}}
